@@ -34,8 +34,6 @@ public final class TwixQuestPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        saveDefaultConfig();
-
         TextUtil.init(this);
 
         this.questRegistry = new QuestRegistry(this);
@@ -123,7 +121,7 @@ public final class TwixQuestPlugin extends JavaPlugin {
     }
 
     public void reloadAll() {
-        reloadConfig();
+        // В плагине нет config.yml — все настройки в quests.yml.
         TextUtil.init(this);
         questRegistry.loadAll();
     }
