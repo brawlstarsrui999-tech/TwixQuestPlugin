@@ -1,38 +1,58 @@
 package twix.quest.hook;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.ServicesManager;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
+import twix.quest.TwixQuestPlugin;
 import twix.quest.manager.QuestManager;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.WeakHashMap;
 
 /**
- * Хук для интеграции с {@code BaerPlugin} (brawlstarsrui999-tech/BaerPlugin, версия 3.1+).
+ * Хук для интеграции с BaerPlugin (brawlstarsrui999-tech/BaerPlugin) без
+ * необходимости модификации самого BaerPlugin.
  *
- * <p>BaerPlugin регистрирует свой API через Bukkit {@link ServicesManager} под
- * именем класса {@code com.buyerplugin.api.BuyerService}. Чтобы TwixQuestPlugin
- * оставался компилируемым без зависимости на BaerPlugin, мы резолвим API
- * через reflection и подписываемся на события транзацкий динамически.</p>
+ * <p><b>Принцип работы (inventory-snapshot):</b></p>
+ * <ol>
+ *     <li>Когда игрок открывает GUI с заголовком, содержащим "Байер" (или "Buyer"),
+ *         мы запоминаем (snapshot) текущее содержимое его инвентаря и баланс Vault.</li>
+ *     <li>Когда игрок закрывает это GUI, мы делаем diff между snapshot'ом и текущим
+ *         состоянием:
+ *         <ul>
+ *             <li>Если баланс ВЫРОС — игрок продал что-то байеру. Находим материалы,
+ *                 которых стало меньше в инвентаре, и засчитываем их как
+ *                 {@code SELL_TO_BUYER}.</li>
+ *             <li>Если баланс УПАЛ — игрок купил у байера (плюс инвентарь пополнился).
+ *                 Это можно использовать для квестов типа "купить у байера" (если такие будут).</li>
+ *         </ul>
+ *     </li>
+ * </ol>
  *
- * <p>Если BaerPlugin не установлен или его версия ниже 3.1 — хук тихо
- * отключается, оставляя квесты SELL_TO_BUYER недостижимыми, но плагин
- * продолжает работать.</p>
+ * <p>Подход полностью не зависит от BaerPlugin — мы лишь смотрим на то, что
+ * инвентарь/баланс игрока изменились, пока он находился в GUI с заголовком "Байер".</p>
+ *
+ * <p>Если BaerPlugin не установлен — квесты SELL_TO_BUYER просто не будут
+ * засчитываться (потому что GUI с "Байер" не откроется).</p>
  */
-public final class BuyerHook {
+public final class BuyerHook implements Listener {
 
     private final JavaPlugin plugin;
     private final QuestManager manager;
-    private final AtomicReference<UUID> subscriptionId = new AtomicReference<>();
-    private Object service;        // com.buyerplugin.api.BuyerService (через reflection)
-    private Class<?> serviceClass; // com.buyerplugin.api.BuyerService
+    private final Map<UUID, Snapshot> snapshots = new WeakHashMap<>();
 
     private BuyerHook(JavaPlugin plugin, QuestManager manager) {
         this.plugin  = plugin;
@@ -40,150 +60,115 @@ public final class BuyerHook {
     }
 
     public static BuyerHook create(JavaPlugin plugin, QuestManager manager) {
-        return new BuyerHook(plugin, manager);
+        BuyerHook hook = new BuyerHook(plugin, manager);
+        Bukkit.getPluginManager().registerEvents(hook, plugin);
+        return hook;
     }
 
-    /**
-     * Попробовать подключиться к BaerPlugin через ServicesManager.
-     * Безопасно вызывать когда BaerPlugin может быть ещё не загружен —
-     * метод просто тихо завершится.
-     */
-    public void hook() {
-        Plugin bp = Bukkit.getPluginManager().getPlugin("BuyerPlugin");
-        if (bp == null) {
-            plugin.getLogger().info("BaerPlugin (BuyerPlugin) не найден — квесты SELL_TO_BUYER будут недостижимы.");
-            return;
-        }
-        try {
-            serviceClass = Class.forName("com.buyerplugin.api.BuyerService");
-        } catch (ClassNotFoundException e) {
-            plugin.getLogger().warning(
-                    "BuyerPlugin установлен, но не публикует com.buyerplugin.api.BuyerService. " +
-                    "Обновите BaerPlugin до версии 3.1+ для интеграции с SELL_TO_BUYER.");
-            return;
-        }
-        ServicesManager sm = Bukkit.getServicesManager();
-        // sm.getRegistration(Class<T>) стирает дженерик до Object, поэтому
-        // мы перебираем все известные сервисы и ищем тот, чей провайдер
-        // имплементит com.buyerplugin.api.BuyerService.
-        for (Class<?> known : sm.getKnownServices()) {
-            if (!serviceClass.isAssignableFrom(known)) continue;
-            Object provider = sm.load(known);
-            if (provider != null && serviceClass.isInstance(provider)) {
-                service = provider;
-                registerListener();
-                plugin.getLogger().info("Подключились к BuyerService: " + service.getClass().getName());
-                return;
-            }
-        }
-        // Попробуем fallback: поискать среди ВСЕХ зарегистрированных провайдеров
-        // (getKnownServices() иногда возвращает неполный список в старых Bukkit).
-        try {
-            Method getReg = sm.getClass().getMethod("getRegistrations", Plugin.class);
-            for (Object rsp : (java.util.List<?>) getReg.invoke(sm, bp)) {
-                Method getProvider = rsp.getClass().getMethod("getProvider");
-                Object provider = getProvider.invoke(rsp);
-                if (provider != null && serviceClass.isInstance(provider)) {
-                    service = provider;
-                    registerListener();
-                    plugin.getLogger().info("Подключились к BuyerService (fallback): " + service.getClass().getName());
-                    return;
-                }
-            }
-        } catch (Throwable ignored) {
-            // ignore
-        }
-        plugin.getLogger().warning("BuyerService не зарегистрирован. Квесты SELL_TO_BUYER не будут засчитываться.");
+    /** Колбэк из main — больше ничего делать не нужно, listener уже зарегистрирован. */
+    public void hook() { /* no-op: события слушаются через @EventHandler */ }
+    public void unhook() { /* no-op: Bukkit сам отпишется при onDisable() */ }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onOpen(InventoryOpenEvent e) {
+        if (!(e.getPlayer() instanceof Player p)) return;
+        if (!isBuyerGui(e.getView().title())) return;
+        if (!p.isOnline()) return;
+
+        Snapshot snap = new Snapshot();
+        snap.balance = currentBalance(p);
+        snap.items = snapshotItems(p.getInventory());
+        snapshots.put(p.getUniqueId(), snap);
     }
 
-    /**
-     * Динамически создаёт прокси {@code BuyerListener.onTransaction(BuyerTransactionEvent)}
-     * и регистрирует его через {@code BuyerService.register(listener)}.
-     */
-    private void registerListener() {
-        try {
-            Class<?> listenerClass = Class.forName("com.buyerplugin.api.BuyerListener");
-            Class<?> eventClass    = Class.forName("com.buyerplugin.api.BuyerTransactionEvent");
-            Class<?> typeClass     = Class.forName("com.buyerplugin.api.BuyerTransactionType");
-            // SELL-константа enum'а: используем unchecked cast (Class<Enum>).
-            @SuppressWarnings({"unchecked", "rawtypes"})
-            Object sellType = Enum.valueOf((Class<Enum>) typeClass, "SELL");
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onClose(InventoryCloseEvent e) {
+        if (!(e.getPlayer() instanceof Player p)) return;
+        Snapshot snap = snapshots.remove(p.getUniqueId());
+        if (snap == null) return;
+        if (!isBuyerGui(e.getView().title())) return;
+        if (!p.isOnline()) return;
 
-            Method getType    = eventClass.getMethod("getType");
-            Method getPlayer  = eventClass.getMethod("getPlayer");
-            Method getMaterial = eventClass.getMethod("getMaterial");
-            Method getAmount  = eventClass.getMethod("getAmount");
+        // Diff баланса
+        double newBalance = currentBalance(p);
+        double delta = newBalance - snap.balance;
 
-            InvocationHandler handler = (proxy, method, args) -> {
-                if (method.getName().equals("onTransaction") && args != null && args.length == 1) {
-                    Object event = args[0];
+        Map<Material, Integer> oldItems = snap.items;
+        Map<Material, Integer> newItems = snapshotItems(p.getInventory());
+
+        // Продажа: баланс вырос И какие-то предметы убавились.
+        if (delta > 0.0001) {
+            // Найдём материалы, которых стало меньше (т.е. игрок продал их).
+            for (Map.Entry<Material, Integer> entry : oldItems.entrySet()) {
+                Material mat = entry.getKey();
+                int was = entry.getValue();
+                int now = newItems.getOrDefault(mat, 0);
+                int sold = was - now;
+                if (sold > 0) {
+                    ItemStack fake = new ItemStack(mat, sold);
                     try {
-                        if (getType.invoke(event) == sellType) {
-                            Player player = (Player) getPlayer.invoke(event);
-                            if (player != null) {
-                                org.bukkit.Material mat = (org.bukkit.Material) getMaterial.invoke(event);
-                                Integer amount = (Integer) getAmount.invoke(event);
-                                if (mat != null && amount != null && amount > 0) {
-                                    ItemStack fake = new ItemStack(mat, amount);
-                                    try {
-                                        manager.onSellToBuyer(player, fake);
-                                    } catch (Throwable t) {
-                                        plugin.getLogger().warning("onSellToBuyer failed: " + t.getMessage());
-                                    }
-                                }
-                            }
-                        }
+                        manager.onSellToBuyer(p, fake);
                     } catch (Throwable t) {
-                        plugin.getLogger().warning("BuyerListener proxy error: " + t.getMessage());
+                        plugin.getLogger().warning("onSellToBuyer не сработал: " + t.getMessage());
                     }
                 }
-                return null;
-            };
-            Object proxy = Proxy.newProxyInstance(
-                    plugin.getClass().getClassLoader(),
-                    new Class<?>[] { listenerClass },
-                    handler);
-
-            // BuyerService.register(BuyerListener) → UUID
-            Method registerMethod = serviceClass.getMethod("register", listenerClass);
-            Object returned = registerMethod.invoke(service, proxy);
-            if (returned instanceof UUID) {
-                subscriptionId.set((UUID) returned);
             }
-        } catch (Throwable t) {
-            plugin.getLogger().severe("Не удалось зарегистрировать BuyerListener: " + t);
-            t.printStackTrace();
+        }
+        // Покупка: баланс упал И какие-то предметы прибавились.
+        else if (delta < -0.0001) {
+            // Можно засчитывать как "купил у байера", но у нас таких квестов нет —
+            // оставляем хук на будущее. Не логируем, чтобы не спамить.
         }
     }
 
-    public void unhook() {
-        if (service == null) return;
-        UUID id = subscriptionId.get();
-        if (id == null) return;
+    // ------------------------------------------------------------------
+    // Утилиты
+    // ------------------------------------------------------------------
+
+    /**
+     * Возвращает true если заголовок inventory похож на GUI байера.
+     * Содержит "Байер" / "Buyer" / "магазин" — на случай, если BaerPlugin
+     * сменит title. Проверка идёт по plain text без цветовых кодов.
+     */
+    private boolean isBuyerGui(Component title) {
+        if (title == null) return false;
+        String plain = PlainTextComponentSerializer.plainText().serialize(title);
+        if (plain == null) return false;
+        String t = plain.toLowerCase();
+        return t.contains("байер") || t.contains("buyer") || t.contains("магазин");
+    }
+
+    private double currentBalance(Player p) {
         try {
-            Method unregister = serviceClass.getMethod("unregister", UUID.class);
-            unregister.invoke(service, id);
+            TwixQuestPlugin tq = TwixQuestPlugin.inst();
+            Economy eco = tq == null ? null : tq.getVaultEconomy();
+            if (eco == null) return 0.0;
+            return eco.getBalance(p);
         } catch (Throwable t) {
-            plugin.getLogger().warning("Не удалось снять подписку BuyerListener: " + t.getMessage());
-        } finally {
-            subscriptionId.set(null);
-            service = null;
+            return 0.0;
         }
     }
 
     /**
-     * Совместимость со старым мостом — если по какой-то причине сторонний
-     * плагин зовёт нас через TwixQuestSeller, оставлено для обратной совместимости.
+     * Делает плоский snapshot инвентаря игрока (сумма по каждому Material).
+     * Не учитывает meta-данные (имя, зачарования) — только тип и количество.
      */
+    private Map<Material, Integer> snapshotItems(PlayerInventory inv) {
+        Map<Material, Integer> map = new HashMap<>();
+        if (inv == null) return map;
+        for (ItemStack stack : inv.getContents()) {
+            if (stack == null || stack.getType() == Material.AIR) continue;
+            map.merge(stack.getType(), stack.getAmount(), Integer::sum);
+        }
+        return map;
+    }
+
+    /** Совместимость со старым API (используется PlayerListener'ом). */
     public void notifySale(Player p, ItemStack stack, double amount) {
         if (stack == null) return;
         manager.onSellToBuyer(p, stack);
     }
 
-    /**
-     * Регистрация моста в Bukkit ServicesManager — обратная совместимость
-     * со старыми кастомными BuyerPlugin, использующими TwixQuestManagerBridge.
-     */
     public void registerBridge(TwixQuestManagerBridge bridge) {
         Bukkit.getServicesManager().register(TwixQuestManagerBridge.class, bridge, plugin,
                 org.bukkit.plugin.ServicePriority.Normal);
@@ -194,10 +179,18 @@ public final class BuyerHook {
     }
 
     public interface TwixQuestManagerBridge {
-        void notifySell(Player p, org.bukkit.Material material, int amount);
+        void notifySell(Player p, Material material, int amount);
     }
 
     public interface TwixQuestSeller {
         void handleSell(Player p, ItemStack stack, int amount);
+    }
+
+    // ------------------------------------------------------------------
+    // Внутренний класс
+    // ------------------------------------------------------------------
+    private static final class Snapshot {
+        double balance;
+        Map<Material, Integer> items = new HashMap<>();
     }
 }

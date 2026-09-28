@@ -67,11 +67,6 @@ public final class TwixQuestPlugin extends JavaPlugin {
 
         setupVault();
         setupPlayerPoints();
-
-        // Подключаемся к BaerPlugin после того, как все плагины загружены Bukkit'ом.
-        Bukkit.getScheduler().runTask(this, () -> {
-            if (buyerHook != null) buyerHook.hook();
-        });
     }
 
     @Override
