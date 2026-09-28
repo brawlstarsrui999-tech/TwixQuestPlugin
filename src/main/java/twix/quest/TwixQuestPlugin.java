@@ -102,9 +102,22 @@ public final class TwixQuestPlugin extends JavaPlugin {
             return;
         }
         try {
-            PlayerPoints pp = (PlayerPoints) getServer().getPluginManager().getPlugin("PlayerPoints");
-            playerPointsAPI = pp.getAPI();
-            getLogger().info("Подключено к PlayerPoints (Twixcoin).");
+            // В PlayerPoints 3.3.x экземпляр получается через singleton PlayerPoints#getInstance().
+            org.black_ixx.playerpoints.PlayerPoints pp =
+                    org.black_ixx.playerpoints.PlayerPoints.getInstance();
+            if (pp == null) {
+                pp = (org.black_ixx.playerpoints.PlayerPoints) getServer().getPluginManager().getPlugin("PlayerPoints");
+            }
+            if (pp != null) {
+                playerPointsAPI = pp.getAPI();
+                if (playerPointsAPI != null) {
+                    getLogger().info("Подключено к PlayerPoints (Twixcoin).");
+                } else {
+                    getLogger().warning("PlayerPoints.getAPI() вернул null — награды Twixcoin будут недоступны.");
+                }
+            } else {
+                getLogger().warning("Не удалось получить экземпляр PlayerPoints.");
+            }
         } catch (Throwable t) {
             getLogger().warning("Не удалось подключиться к PlayerPoints: " + t.getMessage());
         }

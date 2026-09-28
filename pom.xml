@@ -29,6 +29,10 @@
             <id>jitpack</id>
             <url>https://jitpack.io/</url>
         </repository>
+        <repository>
+            <id>rosewood-repo</id>
+            <url>https://repo.rosewooddev.io/repository/public/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -48,11 +52,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- PlayerPoints (Twixcoin) -->
+        <!-- PlayerPoints (Twixcoin) — Rosewood 3.3.5 -->
         <dependency>
             <groupId>org.black_ixx</groupId>
             <artifactId>playerpoints</artifactId>
-            <version>3.2.6</version>
+            <version>3.3.5</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
