@@ -43,14 +43,14 @@ public final class QuestAdminCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "reload" -> {
                 plugin.reloadAll();
-                TextUtil.send(sender, "<color:#9B59FF>Конфигурация и квесты перезагружены.");
+                TextUtil.send(sender, "<#9B59FF>Конфигурация и квесты перезагружены.");
             }
             case "reset" -> {
                 if (args.length < 2) { TextUtil.send(sender, "<red>Использование: /tqadmin reset <player>"); return true; }
                 Player p = Bukkit.getPlayerExact(args[1]);
                 if (p == null) { TextUtil.send(sender, "<red>Игрок не найден."); return true; }
                 data.reset(p.getUniqueId());
-                TextUtil.send(sender, "<color:#9B59FF>Квесты игрока " + p.getName() + " сброшены.");
+                TextUtil.send(sender, "<#9B59FF>Квесты игрока " + p.getName() + " сброшены.");
             }
             case "complete" -> {
                 if (args.length < 3) { TextUtil.send(sender, "<red>Использование: /tqadmin complete <player> <questId|active>"); return true; }
@@ -73,7 +73,7 @@ public final class QuestAdminCommand implements CommandExecutor, TabCompleter {
                 Player p = Bukkit.getPlayerExact(args[1]);
                 if (p == null) { TextUtil.send(sender, "<red>Игрок не найден."); return true; }
                 int done = data.countMainCompleted(p.getUniqueId(), registry);
-                TextUtil.send(sender, "<color:#9B59FF>Игрок " + p.getName() + ": пройдено <color:#F1C40F>" + done + "/" + registry.size() + "</color> основных квестов.");
+                TextUtil.send(sender, "<#9B59FF>Игрок " + p.getName() + ": пройдено <#F1C40F>" + done + "/" + registry.size() + "<reset> основных квестов.");
                 long started = data.startTime(p.getUniqueId());
                 TextUtil.send(sender, "<gray>  Старт прогресса: " + new java.util.Date(started));
             }

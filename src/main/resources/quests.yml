@@ -27,7 +27,7 @@ quests:
       items:
         - material: WOODEN_AXE
           amount: 1
-          name: "<color:#9B59FF><b>Удобный топор</b></color>"
+          name: "<#9B59FF><b>Удобный топор</b><reset>"
           enchantments:
             efficiency: 2
       vault-coins: 0
@@ -45,7 +45,7 @@ quests:
       items:
         - material: COBBLESTONE
           amount: 25
-          name: "<color:#9B59FF><b>Мешок булыжника</b></color>"
+          name: "<#9B59FF><b>Мешок булыжника</b><reset>"
 
   # 3 ---------------------------------------------------------------
   3:
@@ -56,7 +56,7 @@ quests:
     amount: 1
     reward:
       vault-coins: 100
-      message: "<color:#9B59FF>Поздравляю! Вы получили 100 монет через Vault."
+      message: "<#9B59FF>Поздравляю! Вы получили 100 монет через Vault."
 
   # 4 ---------------------------------------------------------------
   4:
@@ -69,7 +69,7 @@ quests:
       items:
         - material: STONE_PICKAXE
           amount: 1
-          name: "<color:#9B59FF><b>Каменная кирка удачи</b></color>"
+          name: "<#9B59FF><b>Каменная кирка удачи</b><reset>"
           enchantments:
             fortune: 1
             efficiency: 2
@@ -85,7 +85,7 @@ quests:
       items:
         - material: IRON_INGOT
           amount: 3
-          name: "<color:#9B59FF><b>Слитки железа</b></color>"
+          name: "<#9B59FF><b>Слитки железа</b><reset>"
 
   # 6 ---------------------------------------------------------------
   6:
@@ -108,7 +108,7 @@ quests:
       items:
         - material: DIAMOND_SWORD
           amount: 1
-          name: "<color:#9B59FF><b>Алмазный клинок остроты</b></color>"
+          name: "<#9B59FF><b>Алмазный клинок остроты</b><reset>"
           enchantments:
             sharpness: 2
 
@@ -123,7 +123,7 @@ quests:
       items:
         - material: OBSIDIAN
           amount: 4
-          name: "<color:#9B59FF><b>Обсидиан</b></color>"
+          name: "<#9B59FF><b>Обсидиан</b><reset>"
 
   # 9 ---------------------------------------------------------------
   9:
@@ -160,7 +160,7 @@ quests:
       items:
         - material: DIAMOND_CHESTPLATE
           amount: 1
-          name: "<color:#9B59FF><b>Алмазный нагрудник</b></color>"
+          name: "<#9B59FF><b>Алмазный нагрудник</b><reset>"
           enchantments:
             protection: 4
 
@@ -173,7 +173,7 @@ quests:
     amount: 1
     reward:
       vault-coins: 1500
-      message: "<color:#9B59FF>На счёт зачислено 1500 монет!"
+      message: "<#9B59FF>На счёт зачислено 1500 монет!"
 
   # 13 ---------------------------------------------------------------
   13:
@@ -190,7 +190,7 @@ quests:
       items:
         - material: ELYTRA
           amount: 1
-          name: "<color:#9B59FF><b>Элитры</b></color>"
+          name: "<#9B59FF><b>Элитры</b><reset>"
 
   # 14 ---------------------------------------------------------------
   14:
@@ -211,7 +211,7 @@ quests:
       items:
         - material: EXPERIENCE_BOTTLE
           amount: 2
-          name: "<color:#9B59FF><b>Бутылки опыта</b></color>"
+          name: "<#9B59FF><b>Бутылки опыта</b><reset>"
 
   # 16 ---------------------------------------------------------------
   16:
@@ -236,7 +236,7 @@ quests:
       items:
         - material: OMINOUS_TRIAL_KEY
           amount: 1
-          name: "<color:#9B59FF><b>Зловещий ключ испытаний</b></color>"
+          name: "<#9B59FF><b>Зловещий ключ испытаний</b><reset>"
 
   # 18 ---------------------------------------------------------------
   18:
@@ -270,7 +270,7 @@ quests:
       items:
         - material: MACE
           amount: 1
-          name: "<color:#9B59FF><b>Булава ветра</b></color>"
+          name: "<#9B59FF><b>Булава ветра</b><reset>"
           enchantments:
             wind_burst: 3
 
@@ -284,7 +284,7 @@ quests:
       items:
         - material: GOLD_BLOCK
           amount: 4
-          name: "<color:#9B59FF><b>Золотые блоки</b></color>"
+          name: "<#9B59FF><b>Золотые блоки</b><reset>"
 
   # 22 ---------------------------------------------------------------
   22:
@@ -297,7 +297,7 @@ quests:
       items:
         - material: DIAMOND_PICKAXE
           amount: 1
-          name: "<color:#9B59FF><b>Удачливая кирка</b></color>"
+          name: "<#9B59FF><b>Удачливая кирка</b><reset>"
           enchantments:
             fortune: 3
             efficiency: 5
@@ -333,7 +333,7 @@ quests:
       items:
         - material: DIAMOND_SWORD
           amount: 1
-          name: "<color:#9B59FF><b>Клинок огня</b></color>"
+          name: "<#9B59FF><b>Клинок огня</b><reset>"
           enchantments:
             sharpness: 4
             fire_aspect: 1
@@ -361,7 +361,7 @@ quests:
       items:
         - material: ANCIENT_DEBRIS
           amount: 1
-          name: "<color:#9B59FF><b>Древний обломок</b></color>"
+          name: "<#9B59FF><b>Древний обломок</b><reset>"
 
   # 28 ---------------------------------------------------------------
   28:
@@ -413,7 +413,7 @@ quests:
       items:
         - material: WITHER_SKELETON_SKULL
           amount: 1
-          name: "<color:#9B59FF><b>Голова визер-скелета</b></color>"
+          name: "<#9B59FF><b>Голова визер-скелета</b><reset>"
 
   # 33 ---------------------------------------------------------------
   33:

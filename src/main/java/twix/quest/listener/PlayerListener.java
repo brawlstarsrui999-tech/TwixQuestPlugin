@@ -66,7 +66,7 @@ public final class PlayerListener implements Listener, BuyerHook.TwixQuestSeller
 
         // Если уже есть текущий квест — проинформируем
         plugin.getQuestManager().currentQuest(id);
-        TextUtil.send(e.getPlayer(), "<color:#9B59FF><b>Откройте <click:run_command:/quests>/quests</click></b> для просмотра своих заданий.");
+        TextUtil.send(e.getPlayer(), "<#9B59FF><b>Откройте <click:run_command:/quests>/quests</click></b> для просмотра своих заданий.");
     }
 
     @EventHandler public void onQuit(PlayerQuitEvent e) { manager.onQuit(e); }

@@ -80,7 +80,7 @@ public final class QuestManager {
         if (System.currentTimeMillis() - last > 700L) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null) {
-                TextUtil.send(p, "<gray>Прогресс квеста <color:#9B59FF>#" + q.id + " " + q.name + "</color>: <aqua>"
+                TextUtil.send(p, "<gray>Прогресс квеста <#9B59FF>#" + q.id + " " + q.name + "<reset>: <aqua>"
                         + now + "/" + q.amount);
                 lastProgressPing.put(uuid, System.currentTimeMillis());
             }
@@ -97,19 +97,19 @@ public final class QuestManager {
         if (p == null) return;
 
         if (!q.silent) {
-            TextUtil.broadcast("<#D3A8FF>Игрок <color:#BB8CFF><b>" + p.getName() + "</b></color> выполнил квест <color:#9B59FF><b>#" + q.id + " " + q.name + "</b></color>!");
+            TextUtil.broadcast("<#D3A8FF>Игрок <#BB8CFF><b>" + p.getName() + "</b><reset> выполнил квест <#9B59FF><b>#" + q.id + " " + q.name + "</b><reset>!");
             String rewardLine = q.reward.describe();
-            TextUtil.send(p, "<gold>Награда: <color:#F1C40F>" + rewardLine + "</gold>");
+            TextUtil.send(p, "<gold>Награда: <#F1C40F>" + rewardLine + "</gold>");
         }
 
         giveReward(p, q.reward);
 
         QuestDefinition next = currentQuest(uuid);
         if (next != null) {
-            TextUtil.send(p, "<color:#9B59FF><b>Следующий квест:</b> <color:#D3A8FF>#" + next.id + " " + next.name);
+            TextUtil.send(p, "<#9B59FF><b>Следующий квест:</b> <#D3A8FF>#" + next.id + " " + next.name);
             TextUtil.send(p, "<gray>" + next.description);
         } else {
-            TextUtil.send(p, "<color:#9B59FF><b>Все квесты пройдены!</b> <color:#D3A8FF>Поздравляем!");
+            TextUtil.send(p, "<#9B59FF><b>Все квесты пройдены!</b> <#D3A8FF>Поздравляем!");
         }
         progress.getOrDefault(uuid, Collections.emptyMap()).remove(q.id);
         data.setLastKnownName(p);
