@@ -1,0 +1,22 @@
+name: TwixQuestPlugin
+version: ${project.version}
+main: twix.quest.TwixQuestPlugin
+api-version: '1.21'
+author: TwixRPG
+description: Квесты для сервера TwixRPG
+softdepend: [Vault, PlayerPoints, BuyerPlugin]
+
+commands:
+  quests:
+    description: Открыть меню квестов
+    aliases: [quest, twixquests, tq]
+  tqadmin:
+    description: Админ-команды плагина
+    aliases: [twixquestadmin]
+    permission: twixquest.admin
+    usage: /tqadmin <reload|complete|reset|info> [args...]
+
+permissions:
+  twixquest.admin:
+    description: Доступ к админ командам TwixQuest
+    default: op
