@@ -1,0 +1,444 @@
+# =========================================================================
+# TwixQuestPlugin — quests.yml
+# Полностью настраиваемый файл квестов. Допустимые типы:
+#   MINE_BLOCK, CRAFT_ITEM, RECEIVE_ITEM, KILL_MOB, KILL_PLAYER,
+#   ENTER_WORLD, VISIT_STRUCTURE, TRADE_VILLAGER, SELL_TO_BUYER,
+#   REACH_BALANCE, DEPOSIT_ITEM.
+#
+# Поддерживаемые поля:
+#   - name, description, type, amount, material, entity-type, world-env,
+#     world-name, structure, structure-radius, allow-leftover, silent.
+#   - reward: { items: [...], vault-coins: int, twix-coins: int,
+#               exp-levels: int, commands: [cmd, ...], message: '...' }
+#   - items[i]: { material, amount, name, lore[...], unbreakable,
+#                 enchantments: { 'sharpness': 2, 'efficiency': 2, ... } }
+# =========================================================================
+
+quests:
+
+  # 1 ---------------------------------------------------------------
+  1:
+    name: "Добудь 10 дубовых брёвен"
+    description: "Срубите 10 любых дубовых брёвен в обычном мире."
+    type: MINE_BLOCK
+    material: OAK_LOG
+    amount: 10
+    reward:
+      items:
+        - material: WOODEN_AXE
+          amount: 1
+          name: "<color:#9B59FF><b>Удобный топор</b></color>"
+          enchantments:
+            efficiency: 2
+      vault-coins: 0
+      twix-coins: 0
+      exp-levels: 0
+
+  # 2 ---------------------------------------------------------------
+  2:
+    name: "Скрафтите каменную кирку"
+    description: "Скрафтите свою первую кирку — каменную."
+    type: CRAFT_ITEM
+    material: STONE_PICKAXE
+    amount: 1
+    reward:
+      items:
+        - material: COBBLESTONE
+          amount: 25
+          name: "<color:#9B59FF><b>Мешок булыжника</b></color>"
+
+  # 3 ---------------------------------------------------------------
+  3:
+    name: "Продайте что-то покупателю"
+    description: "Воспользуйтесь /buyer sell или командой BaerPlugin, чтобы продать что-то."
+    type: SELL_TO_BUYER
+    material: COBBLESTONE
+    amount: 1
+    reward:
+      vault-coins: 100
+      message: "<color:#9B59FF>Поздравляю! Вы получили 100 монет через Vault."
+
+  # 4 ---------------------------------------------------------------
+  4:
+    name: "Добудьте 30 диорита и вложите в инвентарь"
+    description: "Набейте свой инвентарь 30 диоритом. Квест засчитывается автоматически."
+    type: DEPOSIT_ITEM
+    material: DIORITE
+    amount: 30
+    reward:
+      items:
+        - material: STONE_PICKAXE
+          amount: 1
+          name: "<color:#9B59FF><b>Каменная кирка удачи</b></color>"
+          enchantments:
+            fortune: 1
+            efficiency: 2
+
+  # 5 ---------------------------------------------------------------
+  5:
+    name: "Скрафтите железную кирку"
+    description: "Займитесь железом и скрафтите кирку."
+    type: CRAFT_ITEM
+    material: IRON_PICKAXE
+    amount: 1
+    reward:
+      items:
+        - material: IRON_INGOT
+          amount: 3
+          name: "<color:#9B59FF><b>Слитки железа</b></color>"
+
+  # 6 ---------------------------------------------------------------
+  6:
+    name: "Добудьте и вложите 1 алмаз"
+    description: "Найдите свой первый алмаз."
+    type: DEPOSIT_ITEM
+    material: DIAMOND
+    amount: 1
+    reward:
+      # без награды
+
+  # 7 ---------------------------------------------------------------
+  7:
+    name: "Убейте 10 зомби"
+    description: "Встречайте ночь во всеоружии."
+    type: KILL_MOB
+    entity-type: ZOMBIE
+    amount: 10
+    reward:
+      items:
+        - material: DIAMOND_SWORD
+          amount: 1
+          name: "<color:#9B59FF><b>Алмазный клинок остроты</b></color>"
+          enchantments:
+            sharpness: 2
+
+  # 8 ---------------------------------------------------------------
+  8:
+    name: "Скрафтите алмазную кирку"
+    description: "Большой шаг — собственная алмазная кирка."
+    type: CRAFT_ITEM
+    material: DIAMOND_PICKAXE
+    amount: 1
+    reward:
+      items:
+        - material: OBSIDIAN
+          amount: 4
+          name: "<color:#9B59FF><b>Обсидиан</b></color>"
+
+  # 9 ---------------------------------------------------------------
+  9:
+    name: "Войдите в Ад"
+    description: "Постройте портал в Нижний мир и пройдите через него."
+    type: ENTER_WORLD
+    world-env: NETHER
+    amount: 1
+    reward:
+      items:
+        - material: ENDER_PEARL
+          amount: 2
+
+  # 10 ---------------------------------------------------------------
+  10:
+    name: "Убейте 5 ифритов"
+    description: "В Аду повстречайте ифритов и одолейте их."
+    type: KILL_MOB
+    entity-type: BLAZE
+    amount: 5
+    reward:
+      items:
+        - material: BLAZE_ROD
+          amount: 2
+
+  # 11 ---------------------------------------------------------------
+  11:
+    name: "Вложите 3 Ока Эндера"
+    description: "Соберите и положите в инвентарь 3 Ока Эндера."
+    type: DEPOSIT_ITEM
+    material: ENDER_EYE
+    amount: 3
+    reward:
+      items:
+        - material: DIAMOND_CHESTPLATE
+          amount: 1
+          name: "<color:#9B59FF><b>Алмазный нагрудник</b></color>"
+          enchantments:
+            protection: 4
+
+  # 12 ---------------------------------------------------------------
+  12:
+    name: "Зайдите в Край"
+    description: "Найдите крепость Края и войдите в Энд."
+    type: ENTER_WORLD
+    world-env: THE_END
+    amount: 1
+    reward:
+      vault-coins: 1500
+      message: "<color:#9B59FF>На счёт зачислено 1500 монет!"
+
+  # 13 ---------------------------------------------------------------
+  13:
+    name: "Вложите 12 Ок Эндера и 6 палочек ифрита"
+    description: "Апогей крафта: подготовьте всё для элитр."
+    type: DEPOSIT_ITEM
+    material: ENDER_EYE
+    amount: 12
+    extras:
+      - material: BLAZE_ROD
+        amount: 6
+    allow-leftover: false
+    reward:
+      items:
+        - material: ELYTRA
+          amount: 1
+          name: "<color:#9B59FF><b>Элитры</b></color>"
+
+  # 14 ---------------------------------------------------------------
+  14:
+    name: "Поторгуйтесь с жителем"
+    description: "Откройте меню торговли у любого жителя и совершите сделку."
+    type: TRADE_VILLAGER
+    amount: 1
+    reward: {}
+
+  # 15 ---------------------------------------------------------------
+  15:
+    name: "Вложите 10 изумрудов"
+    description: "Соберите изумруды и положите в инвентарь."
+    type: DEPOSIT_ITEM
+    material: EMERALD
+    amount: 10
+    reward:
+      items:
+        - material: EXPERIENCE_BOTTLE
+          amount: 2
+          name: "<color:#9B59FF><b>Бутылки опыта</b></color>"
+
+  # 16 ---------------------------------------------------------------
+  16:
+    name: "Убейте 3 жителей"
+    description: "Проявите свою хитрость (или небрежение)."
+    type: KILL_MOB
+    entity-type: VILLAGER
+    amount: 3
+    reward:
+      items:
+        - material: EMERALD
+          amount: 15
+
+  # 17 ---------------------------------------------------------------
+  17:
+    name: "Вложите 2 ключа испытаний"
+    description: "Обычных ключа испытаний в инвентаре — 2 шт."
+    type: DEPOSIT_ITEM
+    material: TRIAL_KEY
+    amount: 2
+    reward:
+      items:
+        - material: OMINOUS_TRIAL_KEY
+          amount: 1
+          name: "<color:#9B59FF><b>Зловещий ключ испытаний</b></color>"
+
+  # 18 ---------------------------------------------------------------
+  18:
+    name: "Убейте 10 пауков"
+    description: "Просто пройдитесь по пещерам."
+    type: KILL_MOB
+    entity-type: SPIDER
+    amount: 10
+    reward: {}
+
+  # 19 ---------------------------------------------------------------
+  19:
+    name: "Убейте 25 вихрей"
+    description: "Сразитесь с новой угрозой — breeze'ами."
+    type: KILL_MOB
+    entity-type: BREEZE
+    amount: 25
+    reward:
+      items:
+        - material: OMINOUS_TRIAL_KEY
+          amount: 2
+
+  # 20 ---------------------------------------------------------------
+  20:
+    name: "Сдайте навершие булавы"
+    description: "Скрафтите булаву и сдайте её в инвентарь."
+    type: DEPOSIT_ITEM
+    material: MACE
+    amount: 1
+    reward:
+      items:
+        - material: MACE
+          amount: 1
+          name: "<color:#9B59FF><b>Булава ветра</b></color>"
+          enchantments:
+            wind_burst: 3
+
+  # 21 ---------------------------------------------------------------
+  21:
+    name: "Достигните общего баланса в 3500"
+    description: "Накопите на счёте Vault 3500 монет."
+    type: REACH_BALANCE
+    amount: 3500
+    reward:
+      items:
+        - material: GOLD_BLOCK
+          amount: 4
+          name: "<color:#9B59FF><b>Золотые блоки</b></color>"
+
+  # 22 ---------------------------------------------------------------
+  22:
+    name: "Сдайте 750 булыжника"
+    description: "Сдайте 750 булыжника в инвентарь."
+    type: DEPOSIT_ITEM
+    material: COBBLESTONE
+    amount: 750
+    reward:
+      items:
+        - material: DIAMOND_PICKAXE
+          amount: 1
+          name: "<color:#9B59FF><b>Удачливая кирка</b></color>"
+          enchantments:
+            fortune: 3
+            efficiency: 5
+            unbreaking: 3
+            mending: 1
+
+  # 23 ---------------------------------------------------------------
+  23:
+    name: "Вложите 25 алмазов"
+    description: "В инвентаре должно быть не менее 25 алмазов."
+    type: DEPOSIT_ITEM
+    material: DIAMOND
+    amount: 25
+    reward: {}
+
+  # 24 ---------------------------------------------------------------
+  24:
+    name: "Сдайте байеру 250 сахарного тростника"
+    description: "Продайте 250 сахарного тростника через BaerPlugin."
+    type: SELL_TO_BUYER
+    material: SUGAR_CANE
+    amount: 250
+    reward:
+      vault-coins: 1500
+
+  # 25 ---------------------------------------------------------------
+  25:
+    name: "Убейте 1 игрока, который наиграл ≥ 30 минут"
+    description: "PvP разрешено, но только с теми, кто наиграл не менее 30 минут."
+    type: KILL_PLAYER
+    amount: 1
+    reward:
+      items:
+        - material: DIAMOND_SWORD
+          amount: 1
+          name: "<color:#9B59FF><b>Клинок огня</b></color>"
+          enchantments:
+            sharpness: 4
+            fire_aspect: 1
+            unbreaking: 2
+
+  # 26 ---------------------------------------------------------------
+  26:
+    name: "Убейте железного голема"
+    description: "В деревне или рядом с ней."
+    type: KILL_MOB
+    entity-type: IRON_GOLEM
+    amount: 1
+    reward:
+      items:
+        - material: IRON_INGOT
+          amount: 30
+
+  # 27 ---------------------------------------------------------------
+  27:
+    name: "Оседлайте лавомерку"
+    description: "Найдите в Аду лавомерку и сядьте на неё."
+    type: MOUNT_STRIDER
+    amount: 1
+    reward:
+      items:
+        - material: ANCIENT_DEBRIS
+          amount: 1
+          name: "<color:#9B59FF><b>Древний обломок</b></color>"
+
+  # 28 ---------------------------------------------------------------
+  28:
+    name: "Сдайте 200 кварца"
+    description: "Накопите в инвентаре 200 кварца Нижнего мира."
+    type: DEPOSIT_ITEM
+    material: QUARTZ
+    amount: 200
+    reward:
+      exp-levels: 30
+
+  # 29 ---------------------------------------------------------------
+  29:
+    name: "Вложите 25 слитков золота"
+    description: "Накопите 25 золотых слитков."
+    type: DEPOSIT_ITEM
+    material: GOLD_INGOT
+    amount: 25
+    reward: {}
+
+  # 30 ---------------------------------------------------------------
+  30:
+    name: "Вложите 5 слитков незерита"
+    description: "Скрафтите и соберите слитки незерита."
+    type: DEPOSIT_ITEM
+    material: NETHERITE_INGOT
+    amount: 5
+    reward:
+      twix-coins: 50
+
+  # 31 ---------------------------------------------------------------
+  31:
+    name: "Попадите в бастион"
+    description: "Отправляйтесь в Ад и найдите бастион."
+    type: VISIT_STRUCTURE
+    structure: "bastion_remnant"
+    structure-radius: 1024
+    amount: 1
+    reward: {}
+
+  # 32 ---------------------------------------------------------------
+  32:
+    name: "Убейте 3 визер-скелетов"
+    description: "На чёрной крепости визер-скелеты особенно опасны."
+    type: KILL_MOB
+    entity-type: WITHER_SKELETON
+    amount: 3
+    reward:
+      items:
+        - material: WITHER_SKELETON_SKULL
+          amount: 1
+          name: "<color:#9B59FF><b>Голова визер-скелета</b></color>"
+
+  # 33 ---------------------------------------------------------------
+  33:
+    name: "Сдайте 150 песка душ"
+    description: "Сдайте 150 песка душ в инвентарь."
+    type: DEPOSIT_ITEM
+    material: SOUL_SAND
+    amount: 150
+    reward: {}
+
+  # 34 ---------------------------------------------------------------
+  34:
+    name: "Убейте 10 визер-скелетов"
+    description: "Финальный фарм скелетов."
+    type: KILL_MOB
+    entity-type: WITHER_SKELETON
+    amount: 10
+    reward: {}
+
+  # 35 ---------------------------------------------------------------
+  35:
+    name: "Вложите звезду Незера"
+    description: "Звезда Незера — материал для битвы с Визером."
+    type: DEPOSIT_ITEM
+    material: NETHER_STAR
+    amount: 1
+    reward:
+      twix-coins: 25
