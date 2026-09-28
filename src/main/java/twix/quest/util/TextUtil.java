@@ -54,6 +54,16 @@ public final class TextUtil {
     }
 
     /**
+     * Экранирует символы MiniMessage в произвольной строке (например, имя игрока),
+     * чтобы они не были интерпретированы как теги. Использует встроенный
+     * {@link MiniMessage#escapeTags(String)} — добавлен в Adventure 4.10.0+.
+     */
+    public static String escapeMiniMessage(String input) {
+        if (input == null) return "";
+        return MM.escapeTags(input);
+    }
+
+    /**
      * Шлёт уведомление в чат с фиолетовым префиксом TwixQuest.
      */
     public static void send(CommandSender to, String raw) {

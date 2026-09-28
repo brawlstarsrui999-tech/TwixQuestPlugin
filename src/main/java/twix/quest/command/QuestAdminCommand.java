@@ -50,7 +50,7 @@ public final class QuestAdminCommand implements CommandExecutor, TabCompleter {
                 Player p = Bukkit.getPlayerExact(args[1]);
                 if (p == null) { TextUtil.send(sender, "<red>Игрок не найден."); return true; }
                 data.reset(p.getUniqueId());
-                TextUtil.send(sender, "<#9B59FF>Квесты игрока " + p.getName() + " сброшены.");
+                TextUtil.send(sender, "<#9B59FF>Квесты игрока " + TextUtil.escapeMiniMessage(p.getName()) + " сброшены.");
             }
             case "complete" -> {
                 if (args.length < 3) { TextUtil.send(sender, "<red>Использование: /tqadmin complete <player> <questId|active>"); return true; }
@@ -73,7 +73,7 @@ public final class QuestAdminCommand implements CommandExecutor, TabCompleter {
                 Player p = Bukkit.getPlayerExact(args[1]);
                 if (p == null) { TextUtil.send(sender, "<red>Игрок не найден."); return true; }
                 int done = data.countMainCompleted(p.getUniqueId(), registry);
-                TextUtil.send(sender, "<#9B59FF>Игрок " + p.getName() + ": пройдено <#F1C40F>" + done + "/" + registry.size() + "<reset> основных квестов.");
+                TextUtil.send(sender, "<#9B59FF>Игрок " + TextUtil.escapeMiniMessage(p.getName()) + ": пройдено <#F1C40F>" + done + "/" + registry.size() + "<reset> основных квестов.");
                 long started = data.startTime(p.getUniqueId());
                 TextUtil.send(sender, "<gray>  Старт прогресса: " + new java.util.Date(started));
             }

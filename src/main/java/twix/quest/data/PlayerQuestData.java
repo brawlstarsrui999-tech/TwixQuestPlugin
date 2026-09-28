@@ -101,13 +101,21 @@ public final class PlayerQuestData {
         Map<UUID, String> names = new HashMap<>();
         File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));
         if (files == null) files = new File[0];
+        int total = registry.size();
         for (File f : files) {
             try {
-                String s = f.getName().substring(0, f.getName().length() - 4);
-                UUID id = UUID.fromString(s);
+                String s = f.getName();
+                if (!s.endsWith(".yml") || s.length() <= 4) continue;
+                s = s.substring(0, s.length() - 4);
+                UUID id;
+                try {
+                    id = UUID.fromString(s);
+                } catch (IllegalArgumentException notAUuid) {
+                    continue; // не наш файл (data.yml.lock, ...), пропускаем
+                }
                 YamlConfiguration c = YamlConfiguration.loadConfiguration(f);
                 long started = c.getLong("started", 0L);
-                if (started == 0L) continue;
+                if (started <= 0L) continue;
                 ConfigurationSection cs = c.getConfigurationSection("completed");
                 if (cs == null) continue;
                 long latest = 0L;
@@ -117,19 +125,23 @@ public final class PlayerQuestData {
                     if (ts > latest) latest = ts;
                     done++;
                 }
-                int total = registry.size();
                 if (done >= total) {
+                    String name = c.getString("last-known-name");
+                    if (name == null || name.isBlank()) name = s.substring(0, 8);
                     finished.put(id, latest - started);
-                    names.put(id, c.getString("last-known-name", s.substring(0, 8)));
+                    names.put(id, name);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ex) {
+                if (plugin != null) plugin.getLogger().warning(
+                        "Не удалось прочитать playerdata " + f.getName() + ": " + ex.getMessage());
+            }
         }
         List<Map.Entry<UUID, Long>> entries = new ArrayList<>(finished.entrySet());
         entries.sort(Map.Entry.comparingByValue());
         List<SpeedEntry> top = new ArrayList<>();
         for (int i = 0; i < Math.min(limit, entries.size()); i++) {
             Map.Entry<UUID, Long> e = entries.get(i);
-            top.add(new SpeedEntry(e.getKey(), names.getOrDefault(e.getKey(), "?"), e.getValue()));
+            top.add(new SpeedEntry(e.getKey(), names.getOrDefault(e.getKey(), "???"), e.getValue()));
         }
         return top;
     }

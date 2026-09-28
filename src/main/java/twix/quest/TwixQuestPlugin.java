@@ -41,7 +41,7 @@ public final class TwixQuestPlugin extends JavaPlugin {
         this.playerData = new PlayerQuestData(this);
         this.questManager = new QuestManager(this, questRegistry, playerData);
         this.menuManager = new MenuManager(this);
-        this.buyerHook = BuyerHook.create(this);
+        this.buyerHook = BuyerHook.create(this, questManager);
 
         getLogger().info("╔════════════════════════════════════════════════╗");
         getLogger().info("║     TwixQuestPlugin для TwixRPG запущен       ║");
@@ -67,10 +67,18 @@ public final class TwixQuestPlugin extends JavaPlugin {
 
         setupVault();
         setupPlayerPoints();
+
+        // Подключаемся к BaerPlugin после того, как все плагины загружены Bukkit'ом.
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (buyerHook != null) buyerHook.hook();
+        });
     }
 
     @Override
     public void onDisable() {
+        if (buyerHook != null) {
+            buyerHook.unhook();
+        }
         if (playerData != null) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 playerData.save(p.getUniqueId());

@@ -39,9 +39,9 @@ public final class PlayerListener implements Listener, BuyerHook.TwixQuestSeller
         this.data = data;
         this.manager = manager;
         this.hook = plugin.getBuyerHook();
-        // подписываем мост в ServicesManager
+        // Подписываем устаревший мост на случай, если у кого-то стоит кастомный
+        // BuyerPlugin, использующий TwixQuestManagerBridge (обратная совместимость).
         hook.registerBridge((p, mat, amount) -> {
-            // Это хук от байер-плагина, если он его использует.
             ItemStack fake = new ItemStack(mat, amount);
             handleSell(p, fake, amount);
         });

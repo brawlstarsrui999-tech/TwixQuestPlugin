@@ -301,9 +301,12 @@ public final class MenuManager {
             if (meta != null) {
                 if (i < top.size()) {
                     PlayerQuestData.SpeedEntry e = top.get(i);
+                    // Экранируем имя игрока, чтобы символы < и > не сломали MiniMessage-парсер.
+                    String safeName = TextUtil.escapeMiniMessage(
+                            e.name() == null ? "???" : e.name());
                     meta.displayName(TextUtil.mm(
                             "<#" + medalColor[i] + "><bold>Медаль #" + (i + 1) + "</bold></#" + medalColor[i] + ">"
-                                    + " <#D3A8FF>" + e.name()));
+                                    + " <#D3A8FF>" + safeName));
                     meta.lore(List.of(
                             TextUtil.mm("<dark_gray>─────────"),
                             TextUtil.mm("<gray>Прошёл все квесты за:"),
