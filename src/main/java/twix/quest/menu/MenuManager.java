@@ -41,20 +41,39 @@ public final class MenuManager {
     private final JavaPlugin plugin;
     private final Map<UUID, MenuState> states = new HashMap<>();
 
-    private static final String UI_TITLE_MAIN = "«TwixQuest» <#9B59FF>Главное меню";
-    private static final String UI_TITLE_TREE = "«TwixQuest» <#9B59FF>Дерево квестов";
-    private static final String UI_TITLE_CLAN = "«TwixQuest» <#9B59FF>Клановые квесты";
-    private static final String UI_TITLE_TOP  = "«TwixQuest» <#9B59FF>Топ скорости";
-    private static final String UI_TITLE_PROF = "«TwixQuest» <#9B59FF>Профиль";
-    private static final String UI_TITLE_RW   = "«TwixQuest» <#9B59FF>Награда";
+    // Готовые Component-заголовки (MiniMessage уже распарсен)
+    private static final net.kyori.adventure.text.Component TITLE_MAIN =
+            TextUtil.mm("<gradient:#BB8CFF:#9B59FF><bold>TwixQuest</bold></gradient> <dark_gray>· <#D3A8FF>Главное меню");
+    private static final net.kyori.adventure.text.Component TITLE_TREE =
+            TextUtil.mm("<gradient:#BB8CFF:#9B59FF><bold>TwixQuest</bold></gradient> <dark_gray>· <#D3A8FF>Дерево квестов");
+    private static final net.kyori.adventure.text.Component TITLE_CLAN =
+            TextUtil.mm("<gradient:#BB8CFF:#9B59FF><bold>TwixQuest</bold></gradient> <dark_gray>· <#D3A8FF>Клановые квесты");
+    private static final net.kyori.adventure.text.Component TITLE_TOP =
+            TextUtil.mm("<gradient:#BB8CFF:#9B59FF><bold>TwixQuest</bold></gradient> <dark_gray>· <#D3A8FF>Топ скорости");
+    private static final net.kyori.adventure.text.Component TITLE_PROF =
+            TextUtil.mm("<gradient:#BB8CFF:#9B59FF><bold>TwixQuest</bold></gradient> <dark_gray>· <#D3A8FF>Профиль");
+    private static final net.kyori.adventure.text.Component TITLE_RW =
+            TextUtil.mm("<gradient:#BB8CFF:#9B59FF><bold>TwixQuest</bold></gradient> <dark_gray>· <#D3A8FF>Награда");
 
     public MenuManager(JavaPlugin plugin) { this.plugin = plugin; }
+
+    /**
+     * Сравнивает инвентарь клика с тем, что мы открыли игроку.
+     * Сравниваем по identity (==) — Bukkit Inventory.equals может вернуть true
+     * для разных custom inventories с null holder.
+     */
+    private boolean isOurMenu(Player p, Inventory clickedTop) {
+        if (clickedTop == null) return false;
+        MenuState st = states.get(p.getUniqueId());
+        if (st == null) return false;
+        return clickedTop == st.inventory;
+    }
 
     // ------------------------------------------------------------------
     // Главное меню
     // ------------------------------------------------------------------
     public void openMain(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, UI_TITLE_MAIN);
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_MAIN);
 
         // Декоративная рамка — обходим слот 4 (там заголовок) и слот 9-17 (центральный ряд),
         // слоты 22 (Профиль) и 11/13/15 — кнопки
@@ -113,7 +132,7 @@ public final class MenuManager {
                         "<#D3A8FF>ЛКМ <dark_gray>— <gray>открыть"
                 )));
 
-        states.put(p.getUniqueId(), new MenuState(MenuKind.MAIN, 27));
+        states.put(p.getUniqueId(), new MenuState(MenuKind.MAIN, 27, inv));
         p.openInventory(inv);
     }
 
@@ -128,7 +147,7 @@ public final class MenuManager {
 
         // Берём размер: 27 слотов на каждые 14 видимых квестов (выполненные + активный).
         int slots = Math.min(54, Math.max(27, ((all.size() + 8) / 9 + 1) * 9));
-        Inventory inv = Bukkit.createInventory(null, slots, UI_TITLE_TREE);
+        Inventory inv = Bukkit.createInventory(null, slots, TITLE_TREE);
         UUID uuid = p.getUniqueId();
 
         // Соберём индексы, куда ставим видимые квесты (выполненные + активный).
@@ -173,7 +192,7 @@ public final class MenuManager {
         // Кнопка "Назад"
         inv.setItem(slots - 5, backButton());
 
-        states.put(p.getUniqueId(), new MenuState(MenuKind.TREE, slots));
+        states.put(p.getUniqueId(), new MenuState(MenuKind.TREE, slots, inv));
         p.openInventory(inv);
     }
 
@@ -246,7 +265,7 @@ public final class MenuManager {
     // Клановые квесты (WIP)
     // ------------------------------------------------------------------
     public void openClans(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, UI_TITLE_CLAN);
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_CLAN);
         frameFill(inv, Material.PURPLE_STAINED_GLASS_PANE, 0, 1, 2, 3, 5, 6, 7, 8,
                 18, 19, 20, 21, 23, 24, 25, 26);
         inv.setItem(13, bigButton(Material.BARRIER,
@@ -260,7 +279,7 @@ public final class MenuManager {
                         "<#D3A8FF>общие задания для кланов!"
                 )));
         inv.setItem(22, backButton());
-        states.put(p.getUniqueId(), new MenuState(MenuKind.CLANS, 27));
+        states.put(p.getUniqueId(), new MenuState(MenuKind.CLANS, 27, inv));
         p.openInventory(inv);
     }
 
@@ -270,7 +289,7 @@ public final class MenuManager {
     public void openTop(Player p) {
         TwixQuestPlugin tp = TwixQuestPlugin.inst();
         List<PlayerQuestData.SpeedEntry> top = tp.getPlayerData().getSpeedTop(tp.getQuestRegistry(), 3);
-        Inventory inv = Bukkit.createInventory(null, 27, UI_TITLE_TOP);
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_TOP);
         frameFill(inv, Material.PURPLE_STAINED_GLASS_PANE, 0, 1, 2, 3, 5, 6, 7, 8,
                 18, 19, 20, 21, 23, 24, 25, 26);
 
@@ -308,7 +327,7 @@ public final class MenuManager {
             inv.setItem(11 + i * 2, stack);
         }
         inv.setItem(22, backButton());
-        states.put(p.getUniqueId(), new MenuState(MenuKind.TOP, 27));
+        states.put(p.getUniqueId(), new MenuState(MenuKind.TOP, 27, inv));
         p.openInventory(inv);
     }
 
@@ -322,7 +341,7 @@ public final class MenuManager {
         int done = tp.getPlayerData().countMainCompleted(id, reg);
         int total = reg.size();
 
-        Inventory inv = Bukkit.createInventory(null, 27, UI_TITLE_PROF);
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_PROF);
         frameFill(inv, Material.PURPLE_STAINED_GLASS_PANE, 0, 1, 2, 3, 5, 6, 7, 8,
                 18, 19, 20, 21, 23, 24, 25, 26);
 
@@ -350,7 +369,7 @@ public final class MenuManager {
         }
         inv.setItem(13, head);
         inv.setItem(22, backButton());
-        states.put(p.getUniqueId(), new MenuState(MenuKind.PROFILE, 27));
+        states.put(p.getUniqueId(), new MenuState(MenuKind.PROFILE, 27, inv));
         p.openInventory(inv);
     }
 
@@ -358,7 +377,7 @@ public final class MenuManager {
     // Детали квеста / награды
     // ------------------------------------------------------------------
     private void showRewardInfo(Player p, QuestDefinition q) {
-        Inventory inv = Bukkit.createInventory(null, 27, UI_TITLE_RW);
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_RW);
         frameFill(inv, Material.PURPLE_STAINED_GLASS_PANE, 0, 1, 2, 3, 5, 6, 7, 8,
                 18, 19, 20, 21, 23, 24, 25, 26);
 
@@ -382,7 +401,7 @@ public final class MenuManager {
         }
         inv.setItem(13, icon);
         inv.setItem(22, backButton());
-        states.put(p.getUniqueId(), new MenuState(MenuKind.REWARD_INFO, 27));
+        states.put(p.getUniqueId(), new MenuState(MenuKind.REWARD_INFO, 27, inv));
         p.openInventory(inv);
     }
 
@@ -390,13 +409,15 @@ public final class MenuManager {
     // Обработка кликов
     // ------------------------------------------------------------------
     public boolean handleClick(InventoryClickEvent e) {
-        // 1) Всегда блокируем «украсть» предмет и перемещения курсора.
+        // Сначала проверяем, что это наше меню — иначе не вмешиваемся.
+        if (!(e.getWhoClicked() instanceof Player p)) return false;
+        MenuState st = states.get(p.getUniqueId());
+        if (st == null) return false;
+        if (!isOurMenu(p, e.getInventory())) return false;
+
+        // Теперь точно наше меню — блокируем любые перемещения и кражи.
         e.setCancelled(true);
         e.setResult(org.bukkit.event.Event.Result.DENY);
-
-        if (!(e.getWhoClicked() instanceof Player p)) return true;
-        MenuState st = states.get(p.getUniqueId());
-        if (st == null) return true;
 
         int slot = e.getRawSlot();
         if (slot < 0) return true;
@@ -458,7 +479,15 @@ public final class MenuManager {
     }
 
     public void handleClose(InventoryCloseEvent e) {
-        states.remove(e.getPlayer().getUniqueId());
+        // Удаляем state, только если закрытие — нашего инвентаря (по identity).
+        // При defer-переходе между нашими меню close срабатывает на СТАРОМ инвентаре,
+        // но новый state уже указывает на НОВЫЙ inventory — здесь == не сойдётся,
+        // state не удалится.
+        Player p = (Player) e.getPlayer();
+        MenuState st = states.get(p.getUniqueId());
+        if (st != null && e.getInventory() == st.inventory) {
+            states.remove(p.getUniqueId());
+        }
     }
 
     // ------------------------------------------------------------------
@@ -558,6 +587,7 @@ public final class MenuManager {
     private static final class MenuState {
         final MenuKind kind;
         final int size;
-        MenuState(MenuKind k, int size) { this.kind = k; this.size = size; }
+        final Inventory inventory;
+        MenuState(MenuKind k, int size, Inventory inv) { this.kind = k; this.size = size; this.inventory = inv; }
     }
 }
