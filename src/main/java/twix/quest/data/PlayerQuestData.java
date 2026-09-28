@@ -96,10 +96,12 @@ public final class PlayerQuestData {
 
     /** Топ N самых быстрых по последнему завершённому квесту в общей сложности. */
     public record SpeedEntry(UUID uuid, String name, long durationMs) {}
-    public List<SpeedEntry> getSpeedTop(QuestRegistry registry, int n) {
+    public List<SpeedEntry> getSpeedTop(QuestRegistry registry, int limit) {
         Map<UUID, Long> finished = new HashMap<>();
         Map<UUID, String> names = new HashMap<>();
-        for (File f : Objects.requireNonNullElse(dataFolder.listFiles((d, n) -> n.endsWith(".yml")), new File[0])) {
+        File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (files == null) files = new File[0];
+        for (File f : files) {
             try {
                 String s = f.getName().substring(0, f.getName().length() - 4);
                 UUID id = UUID.fromString(s);
@@ -125,7 +127,7 @@ public final class PlayerQuestData {
         List<Map.Entry<UUID, Long>> entries = new ArrayList<>(finished.entrySet());
         entries.sort(Map.Entry.comparingByValue());
         List<SpeedEntry> top = new ArrayList<>();
-        for (int i = 0; i < Math.min(n, entries.size()); i++) {
+        for (int i = 0; i < Math.min(limit, entries.size()); i++) {
             Map.Entry<UUID, Long> e = entries.get(i);
             top.add(new SpeedEntry(e.getKey(), names.getOrDefault(e.getKey(), "?"), e.getValue()));
         }
