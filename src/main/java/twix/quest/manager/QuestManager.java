@@ -195,11 +195,12 @@ public final class QuestManager {
             }
             case KILL_PLAYER -> {
                 if (!e.getEntityType().equals(EntityType.PLAYER)) return;
-                // Проверим, что жертва играла >= 30 минут
-                OfflinePlayer victim = killer.getServer().getOfflinePlayerIfCached(e.getEntity().getUniqueId());
+                // Проверим, что жертва играла >= 30 минут.
+                // getOfflinePlayerIfCached принимает только String — используем прямую загрузку по UUID.
+                OfflinePlayer victim = Bukkit.getOfflinePlayer(e.getEntity().getUniqueId());
                 boolean eligible = false;
                 if (victim != null) {
-                    // Используем PLAY_ONE_MINUTE жертвы
+                    // Используем PLAY_ONE_MINUTE жертвы (тики)
                     int ticks = victim.getStatistic(Statistic.PLAY_ONE_MINUTE);
                     eligible = ticks >= 20 * 60 * 30; // 30 минут
                 }
@@ -261,8 +262,10 @@ public final class QuestManager {
         if (q == null || q.type != QuestType.VISIT_STRUCTURE) return;
         if (q.structure == null) return;
         org.bukkit.Location here = p.getLocation();
-        org.bukkit.Location found = here.getWorld().locateNearestStructure(here, q.structure, q.structureRadius, false);
-        if (found != null && found.distanceSquared(here) < 1024) { // 32 блока
+        // В Paper/Spigot API 1.21.x locateNearestStructure(Structure,...) возвращает StructureSearchResult.
+        org.bukkit.util.StructureSearchResult result =
+                here.getWorld().locateNearestStructure(here, q.structure, q.structureRadius, false);
+        if (result != null && result.getLocation().distanceSquared(here) < 1024) { // 32 блока
             addProgress(p.getUniqueId(), q, 1);
         }
     }
