@@ -29,6 +29,8 @@ public final class QuestDefinition {
     public final Reward reward;
     public final boolean allowDepositLeftover;
     public final boolean silent;
+    /** Для квестов байера: засчитывать и встречную операцию (купил вместо продал и наоборот). */
+    public final boolean countBuys;
 
     /** Дополнительные требования для квестов с депозитом/добычей нескольких материалов. */
     public final List<MaterialRequirement> extras;
@@ -37,7 +39,7 @@ public final class QuestDefinition {
                            Material itemMaterial, String keyword, EntityType entityType,
                            World.Environment worldEnv, String worldName, Structure structure,
                            int structureRadius, Reward reward, boolean allowDepositLeftover, boolean silent,
-                           List<MaterialRequirement> extras) {
+                           boolean countBuys, List<MaterialRequirement> extras) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -53,6 +55,7 @@ public final class QuestDefinition {
         this.reward = reward;
         this.allowDepositLeftover = allowDepositLeftover;
         this.silent = silent;
+        this.countBuys = countBuys;
         this.extras = extras == null ? List.of() : extras;
     }
 
@@ -77,6 +80,7 @@ public final class QuestDefinition {
             case VISIT_STRUCTURE  -> "Посетить структуру";
             case TRADE_VILLAGER   -> "Торговля";
             case SELL_TO_BUYER    -> "Продажа байеру";
+            case BUY_FROM_BUYER   -> "Покупка у байера";
             case REACH_BALANCE    -> "Баланс";
             case DEPOSIT_ITEM     -> "Вложить";
             case MOUNT_STRIDER    -> "Оседлать лавомерку";
@@ -92,6 +96,7 @@ public final class QuestDefinition {
             case VISIT_STRUCTURE                        -> Material.SPYGLASS;
             case TRADE_VILLAGER                         -> Material.EMERALD;
             case SELL_TO_BUYER                          -> Material.GOLD_INGOT;
+            case BUY_FROM_BUYER                         -> Material.EMERALD;
             case REACH_BALANCE                          -> Material.GOLD_BLOCK;
             case MOUNT_STRIDER                          -> Material.STRIDER_SPAWN_EGG;
         };

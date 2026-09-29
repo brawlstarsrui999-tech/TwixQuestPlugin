@@ -104,11 +104,11 @@ public final class MenuManager {
                         "<#D3A8FF>ЛКМ <dark_gray>— <gray>открыть"
                 )));
         inv.setItem(13, bigButton(Material.EMERALD,
-                "<#9B59FF><bold>Топ скорости</bold>",
+                "<#9B59FF><bold>Топ игроков</bold>",
                 List.of(
                         "<dark_gray>─────────",
-                        "<gray>Тройка самых быстрых",
-                        "<gray>путешественников.",
+                        "<gray>Кто прошёл больше всего",
+                        "<gray>квестов — и быстрее всех.",
                         "<dark_gray>─────────",
                         "<#D3A8FF>ЛКМ <dark_gray>— <gray>открыть"
                 )));
@@ -284,54 +284,119 @@ public final class MenuManager {
     }
 
     // ------------------------------------------------------------------
-    // Топ скорости
+    // Топ игроков
     // ------------------------------------------------------------------
+
+    /** HEX-цвета медалей БЕЗ решётки: тег собирается как "<#" + hex + ">". */
+    private static final String[] MEDAL_HEX = { "F1C40F", "BDC3C7", "CD7F32" };
+    private static final Material[] MEDAL_ITEM = { Material.GOLD_INGOT, Material.IRON_INGOT, Material.COPPER_INGOT };
+    /** Слоты 1-3 мест (средний ряд) и 4-9 мест (нижний ряд, вокруг кнопки «Назад»). */
+    private static final int[] MEDAL_SLOTS = { 11, 13, 15 };
+    private static final int[] REST_SLOTS = { 19, 20, 21, 23, 24, 25 };
+
     public void openTop(Player p) {
         TwixQuestPlugin tp = TwixQuestPlugin.inst();
-        List<PlayerQuestData.SpeedEntry> top = tp.getPlayerData().getSpeedTop(tp.getQuestRegistry(), 3);
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE_TOP);
-        frameFill(inv, Material.PURPLE_STAINED_GLASS_PANE, 0, 1, 2, 3, 5, 6, 7, 8,
-                18, 19, 20, 21, 23, 24, 25, 26);
+        QuestRegistry reg = tp.getQuestRegistry();
+        int total = reg.size();
 
-        Material[] medals = { Material.GOLD_INGOT, Material.IRON_INGOT, Material.COPPER_INGOT };
-        String[] medalColor = { "#F1C40F", "#BDC3C7", "#CD7F32" };
-        for (int i = 0; i < 3; i++) {
-            ItemStack stack = new ItemStack(medals[i]);
-            ItemMeta meta = stack.getItemMeta();
-            if (meta != null) {
-                if (i < top.size()) {
-                    PlayerQuestData.SpeedEntry e = top.get(i);
-                    // Экранируем имя игрока, чтобы символы < и > не сломали MiniMessage-парсер.
-                    String safeName = TextUtil.escapeMiniMessage(
-                            e.name() == null ? "???" : e.name());
-                    meta.displayName(TextUtil.mm(
-                            "<#" + medalColor[i] + "><bold>Медаль #" + (i + 1) + "</bold></#" + medalColor[i] + ">"
-                                    + " <#D3A8FF>" + safeName));
-                    meta.lore(List.of(
-                            TextUtil.mm("<dark_gray>─────────"),
-                            TextUtil.mm("<gray>Прошёл все квесты за:"),
-                            TextUtil.mm("<#" + medalColor[i] + "><bold>" + formatDuration(e.durationMs())),
-                            TextUtil.mm("<dark_gray>─────────"),
-                            TextUtil.mm("<#D3A8FF><italic>Поздравляем победителя!")
-                    ));
-                } else {
-                    meta.displayName(TextUtil.mm(
-                            "<#" + medalColor[i] + "><bold>Медаль #" + (i + 1) + "</bold></#" + medalColor[i] + ">"
-                                    + " <dark_gray>— пусто"));
-                    meta.lore(List.of(
-                            TextUtil.mm("<dark_gray>─────────"),
-                            TextUtil.mm("<dark_gray>Здесь пока никого."),
-                            TextUtil.mm("<#D3A8FF><italic>Будь первым!")
-                    ));
-                }
-                meta.addItemFlags(ItemFlag.values());
-                stack.setItemMeta(meta);
-            }
-            inv.setItem(11 + i * 2, stack);
+        // Берём весь список, чтобы показать и своё место тоже.
+        List<PlayerQuestData.TopEntry> all = tp.getPlayerData().getTop(1000);
+
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_TOP);
+        frameFill(inv, Material.PURPLE_STAINED_GLASS_PANE,
+                0, 1, 2, 3, 5, 6, 7, 8,
+                9, 10, 12, 14, 16, 17,
+                18, 26);
+
+        // Своё место — в шапке, как в главном меню
+        inv.setItem(4, ownPlaceIcon(p, all, total));
+
+        // 1-3 места — медали
+        for (int i = 0; i < MEDAL_SLOTS.length; i++) {
+            PlayerQuestData.TopEntry e = i < all.size() ? all.get(i) : null;
+            inv.setItem(MEDAL_SLOTS[i], topEntryIcon(i + 1, e, total, MEDAL_HEX[i], MEDAL_ITEM[i]));
         }
+        // 4-9 места
+        for (int i = 0; i < REST_SLOTS.length; i++) {
+            int place = 4 + i;
+            PlayerQuestData.TopEntry e = place - 1 < all.size() ? all.get(place - 1) : null;
+            inv.setItem(REST_SLOTS[i], topEntryIcon(place, e, total, "BB8CFF", Material.NAME_TAG));
+        }
+
         inv.setItem(22, backButton());
         states.put(p.getUniqueId(), new MenuState(MenuKind.TOP, 27, inv));
         p.openInventory(inv);
+    }
+
+    /** Иконка одной строки топа. {@code entry == null} — место ещё не занято. */
+    private ItemStack topEntryIcon(int place, PlayerQuestData.TopEntry entry, int total, String hex, Material mat) {
+        ItemStack stack = new ItemStack(mat);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return stack;
+
+        String color = "<#" + hex + ">";
+        if (entry == null) {
+            meta.displayName(TextUtil.mm("<dark_gray><bold>Место #" + place + "</bold> <gray>— пусто"));
+            meta.lore(List.of(
+                    TextUtil.mm("<dark_gray>─────────"),
+                    TextUtil.mm("<dark_gray>Здесь пока никого."),
+                    TextUtil.mm(color + "<italic>Стань первым!")
+            ));
+        } else {
+            // Имя игрока экранируем: символы < и > не должны ломать MiniMessage.
+            String safeName = TextUtil.escapeMiniMessage(entry.name() == null ? "???" : entry.name());
+            meta.displayName(TextUtil.mm(color + "<bold>Место #" + place + "</bold> <white>" + safeName));
+            List<Component> lore = new ArrayList<>();
+            lore.add(TextUtil.mm("<dark_gray>─────────"));
+            lore.add(TextUtil.mm("<gray>Квестов пройдено: " + color + "<bold>" + entry.completed()
+                    + "</bold><gray>/" + total));
+            lore.add(TextUtil.mm("<gray>Время: " + color + "<bold>" + formatDuration(entry.durationMs())));
+            lore.add(TextUtil.mm("<dark_gray>─────────"));
+            lore.add(barComponent(entry.completed(), total));
+            lore.add(TextUtil.mm(place == 1
+                    ? "<#F1C40F><italic>Лидер сервера!"
+                    : "<#D3A8FF><italic>Так держать!"));
+            meta.lore(lore);
+        }
+        meta.addItemFlags(ItemFlag.values());
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    /** «Ваше место в топе» — шапка меню. */
+    private ItemStack ownPlaceIcon(Player p, List<PlayerQuestData.TopEntry> all, int total) {
+        int place = -1;
+        PlayerQuestData.TopEntry mine = null;
+        for (int i = 0; i < all.size(); i++) {
+            if (all.get(i).uuid().equals(p.getUniqueId())) {
+                place = i + 1;
+                mine = all.get(i);
+                break;
+            }
+        }
+        ItemStack stack = new ItemStack(Material.PLAYER_HEAD);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(TextUtil.mm("<#9B59FF><bold>Ваше место в топе"));
+            List<Component> lore = new ArrayList<>();
+            lore.add(TextUtil.mm("<dark_gray>─────────"));
+            if (mine == null) {
+                lore.add(TextUtil.mm("<gray>Вы ещё не прошли ни одного квеста."));
+                lore.add(TextUtil.mm("<#D3A8FF><italic>Начните прямо сейчас!"));
+            } else {
+                lore.add(TextUtil.mm("<gray>Место: <#F1C40F><bold>#" + place + "</bold> <dark_gray>из <#F1C40F>"
+                        + all.size()));
+                lore.add(TextUtil.mm("<gray>Квестов пройдено: <#F1C40F>" + mine.completed() + "<gray>/" + total));
+                lore.add(TextUtil.mm("<gray>Время: <#F1C40F>" + formatDuration(mine.durationMs())));
+            }
+            lore.add(TextUtil.mm("<dark_gray>─────────"));
+            lore.add(TextUtil.mm("<gray>Топ строится по числу пройденных"));
+            lore.add(TextUtil.mm("<gray>квестов, при равенстве — по времени."));
+            meta.lore(lore);
+            meta.addItemFlags(ItemFlag.values());
+            stack.setItemMeta(meta);
+        }
+        return stack;
     }
 
     // ------------------------------------------------------------------

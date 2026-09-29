@@ -3,16 +3,45 @@
 # Полностью настраиваемый файл квестов. Допустимые типы:
 #   MINE_BLOCK, CRAFT_ITEM, RECEIVE_ITEM, KILL_MOB, KILL_PLAYER,
 #   ENTER_WORLD, VISIT_STRUCTURE, TRADE_VILLAGER, SELL_TO_BUYER,
-#   REACH_BALANCE, DEPOSIT_ITEM.
+#   BUY_FROM_BUYER, REACH_BALANCE, DEPOSIT_ITEM, MOUNT_STRIDER.
 #
 # Поддерживаемые поля:
 #   - name, description, type, amount, material, entity-type, world-env,
-#     world-name, structure, structure-radius, allow-leftover, silent.
+#     world-name, structure, structure-radius, allow-leftover, silent,
+#     count-buys.
+#
+# Квесты байера (SELL_TO_BUYER / BUY_FROM_BUYER):
+#   - material      — какой предмет считать. Если поле НЕ указано, засчитывается
+#                     ЛЮБОЙ предмет сделки (удобно для «продайте что-нибудь»).
+#   - count-buys    — true, если квесту неважно, продал игрок или купил.
+#   Продажа в BaerPlugin — это ПРАВЫЙ клик по товару в GUI /buyer,
+#   покупка — ЛЕВЫЙ клик. Подкоманды /buyer sell не существует.
 #   - reward: { items: [...], vault-coins: int, twix-coins: int,
 #               exp-levels: int, commands: [cmd, ...], message: '...' }
 #   - items[i]: { material, amount, name, lore[...], unbreakable,
 #                 enchantments: { 'sharpness': 2, 'efficiency': 2, ... } }
 # =========================================================================
+
+# ---------------------------------------------------------------------------
+# Настройки интеграции с байером (BaerPlugin / BuyerPlugin).
+# Плагин не трогает байер: он определяет окно байера по заголовку GUI
+# или по команде, а саму сделку — по изменению инвентаря игрока.
+# ---------------------------------------------------------------------------
+settings:
+  # Слова в заголовке GUI байера (регистр не важен). У байера заголовок
+  # "Байер » <категория>", так что по умолчанию хватает первых двух.
+  buyer-gui-keywords:
+    - "байер"
+    - "баер"
+    - "buyer"
+    - "baer"
+  # Команды, которые открывают байера (без слэша). Алиасы байера:
+  # buyer, shop, магазин.
+  buyer-command-labels:
+    - "buyer"
+    - "baer"
+    - "shop"
+    - "магазин"
 
 quests:
 
@@ -49,10 +78,10 @@ quests:
 
   # 3 ---------------------------------------------------------------
   3:
-    name: "Продайте что-то покупателю"
-    description: "Воспользуйтесь /buyer sell или командой BaerPlugin, чтобы продать что-то."
+    name: "Продайте что-нибудь байеру"
+    description: "Откройте /buyer и продайте любой предмет: кликните по нему ПРАВОЙ кнопкой мыши."
     type: SELL_TO_BUYER
-    material: COBBLESTONE
+    # material не указан — засчитывается продажа ЛЮБОГО предмета
     amount: 1
     reward:
       vault-coins: 100
@@ -316,7 +345,7 @@ quests:
   # 24 ---------------------------------------------------------------
   24:
     name: "Сдайте байеру 250 сахарного тростника"
-    description: "Продайте 250 сахарного тростника через BaerPlugin."
+    description: "Откройте /buyer, категория «Фермерство», и продайте тростник правой кнопкой (shift — по 64)."
     type: SELL_TO_BUYER
     material: SUGAR_CANE
     amount: 250

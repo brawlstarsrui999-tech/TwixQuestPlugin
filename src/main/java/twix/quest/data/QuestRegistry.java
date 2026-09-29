@@ -139,6 +139,8 @@ public final class QuestRegistry {
         Reward reward = RewardBuilder.from(rs, plugin);
         boolean allowLeftover = q.getBoolean("allow-leftover", true);
         boolean silent = q.getBoolean("silent", false);
+        // для квестов байера: считать ли встречную операцию (купил/продал)
+        boolean countBuys = q.getBoolean("count-buys", false);
 
         int structureRadius = q.getInt("structure-radius", 256);
 
@@ -160,7 +162,23 @@ public final class QuestRegistry {
         }
 
         return new QuestDefinition(id, name, description, type, amount, material, q.getString("keyword", null),
-                entityType, env, worldName, structure, structureRadius, reward, allowLeftover, silent, extras);
+                entityType, env, worldName, structure, structureRadius, reward, allowLeftover, silent,
+                countBuys, extras);
+    }
+
+    /**
+     * Список строк из секции {@code settings} quests.yml.
+     * Используется хуком байера (заголовки GUI и метки команд).
+     */
+    public List<String> settingsList(String key, List<String> defaults) {
+        if (yml == null) return defaults;
+        ConfigurationSection s = yml.getConfigurationSection("settings");
+        if (s == null || !s.isList(key)) return defaults;
+        List<String> out = new ArrayList<>();
+        for (String v : s.getStringList(key)) {
+            if (v != null && !v.isBlank()) out.add(v.trim().toLowerCase(Locale.ROOT));
+        }
+        return out.isEmpty() ? defaults : out;
     }
 
     /** Сохранение кастомных правок. */

@@ -1,5 +1,7 @@
 package twix.quest.data;
 
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -94,56 +96,101 @@ public final class PlayerQuestData {
         return c;
     }
 
-    /** Топ N самых быстрых по последнему завершённому квесту в общей сложности. */
-    public record SpeedEntry(UUID uuid, String name, long durationMs) {}
-    public List<SpeedEntry> getSpeedTop(QuestRegistry registry, int limit) {
-        Map<UUID, Long> finished = new HashMap<>();
-        Map<UUID, String> names = new HashMap<>();
+    /**
+     * Строка топа: кто, сколько квестов закрыл и за какое время.
+     *
+     * @param completed  количество пройденных основных квестов
+     * @param durationMs время от старта прохождения до последнего закрытого квеста
+     */
+    public record TopEntry(UUID uuid, String name, int completed, long durationMs) {}
+
+    /**
+     * Топ игроков по основным квестам.
+     *
+     * <p>Сортировка: сначала по количеству пройденных квестов (по убыванию),
+     * при равенстве — по времени прохождения (кто быстрее, тот выше).
+     * В топ попадают все, кто закрыл хотя бы один квест: раньше список
+     * требовал 100% прохождения, поэтому меню топа всегда было пустым.</p>
+     *
+     * @param limit максимум записей; &lt;= 0 — вернуть всех
+     */
+    public List<TopEntry> getTop(int limit) {
+        Set<UUID> ids = new LinkedHashSet<>();
         File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files == null) files = new File[0];
-        int total = registry.size();
-        for (File f : files) {
-            try {
+        if (files != null) {
+            for (File f : files) {
                 String s = f.getName();
-                if (!s.endsWith(".yml") || s.length() <= 4) continue;
+                if (s.length() <= 4) continue;
                 s = s.substring(0, s.length() - 4);
-                UUID id;
                 try {
-                    id = UUID.fromString(s);
+                    ids.add(UUID.fromString(s));
                 } catch (IllegalArgumentException notAUuid) {
-                    continue; // не наш файл (data.yml.lock, ...), пропускаем
+                    // не наш файл (data.yml.lock и т.п.) — пропускаем
                 }
-                YamlConfiguration c = YamlConfiguration.loadConfiguration(f);
-                long started = c.getLong("started", 0L);
-                if (started <= 0L) continue;
-                ConfigurationSection cs = c.getConfigurationSection("completed");
-                if (cs == null) continue;
-                long latest = 0L;
-                int done = 0;
-                for (String k : cs.getKeys(false)) {
-                    long ts = cs.getLong(k);
-                    if (ts > latest) latest = ts;
-                    done++;
-                }
-                if (done >= total) {
-                    String name = c.getString("last-known-name");
-                    if (name == null || name.isBlank()) name = s.substring(0, 8);
-                    finished.put(id, latest - started);
-                    names.put(id, name);
-                }
-            } catch (Exception ex) {
-                if (plugin != null) plugin.getLogger().warning(
-                        "Не удалось прочитать playerdata " + f.getName() + ": " + ex.getMessage());
             }
         }
-        List<Map.Entry<UUID, Long>> entries = new ArrayList<>(finished.entrySet());
-        entries.sort(Map.Entry.comparingByValue());
-        List<SpeedEntry> top = new ArrayList<>();
-        for (int i = 0; i < Math.min(limit, entries.size()); i++) {
-            Map.Entry<UUID, Long> e = entries.get(i);
-            top.add(new SpeedEntry(e.getKey(), names.getOrDefault(e.getKey(), "???"), e.getValue()));
+        // Кэш в памяти актуальнее файла на диске (онлайновые игроки).
+        ids.addAll(caches.keySet());
+
+        List<TopEntry> entries = new ArrayList<>();
+        for (UUID id : ids) {
+            try {
+                YamlConfiguration c = caches.get(id);
+                if (c == null) {
+                    File f = new File(dataFolder, id + ".yml");
+                    if (!f.exists()) continue;
+                    c = YamlConfiguration.loadConfiguration(f);
+                }
+                ConfigurationSection cs = c.getConfigurationSection("completed");
+                if (cs == null) continue;
+
+                int completed = 0;
+                long latest = 0L;
+                long earliest = Long.MAX_VALUE;
+                for (String k : cs.getKeys(false)) {
+                    long ts = cs.getLong(k);
+                    if (ts <= 0L) continue;
+                    completed++;
+                    if (ts > latest) latest = ts;
+                    if (ts < earliest) earliest = ts;
+                }
+                if (completed <= 0) continue;
+
+                long started = c.getLong("started", 0L);
+                // У старых файлов поля "started" может не быть — считаем от первого квеста.
+                if (started <= 0L) started = earliest == Long.MAX_VALUE ? latest : earliest;
+                long duration = Math.max(0L, latest - started);
+
+                entries.add(new TopEntry(id, resolveName(id, c), completed, duration));
+            } catch (Exception ex) {
+                if (plugin != null) {
+                    plugin.getLogger().warning("Не удалось прочитать playerdata " + id + ": " + ex.getMessage());
+                }
+            }
         }
-        return top;
+
+        entries.sort(Comparator.<TopEntry>comparingInt(TopEntry::completed).reversed()
+                .thenComparingLong(TopEntry::durationMs)
+                .thenComparing(TopEntry::name, String.CASE_INSENSITIVE_ORDER));
+
+        if (limit > 0 && entries.size() > limit) return new ArrayList<>(entries.subList(0, limit));
+        return entries;
+    }
+
+    /** Имя для топа: last-known-name → онлайновый игрок → оффлайн-профиль → 8 символов UUID. */
+    private String resolveName(UUID id, YamlConfiguration c) {
+        String name = c.getString("last-known-name");
+        if (name != null && !name.isBlank()) return name;
+        try {
+            Player online = Bukkit.getPlayer(id);
+            if (online != null) return online.getName();
+            OfflinePlayer off = Bukkit.getOfflinePlayer(id);
+            String offName = off.getName();
+            if (offName != null && !offName.isBlank()) return offName;
+        } catch (Throwable ignored) {
+            // оффлайн-профиль не загрузился — покажем обрезок UUID
+        }
+        return id.toString().substring(0, 8);
     }
 
     public void setLastKnownName(Player p) {

@@ -99,7 +99,8 @@ public final class QuestManager {
         if (!q.silent) {
             TextUtil.broadcast("<#D3A8FF>Игрок <#BB8CFF><b>" + p.getName() + "</b><reset> выполнил квест <#9B59FF><b>#" + q.id + " " + q.name + "</b><reset>!");
             String rewardLine = q.reward.describe();
-            TextUtil.send(p, "<gold>Награда: <#F1C40F>" + rewardLine + "</gold>");
+            // Цвета в MiniMessage не закрываются: "</gold>" уехал бы в чат обычным текстом.
+            TextUtil.send(p, "<#F1C40F><b>Награда:</b> <#F1C40F>" + rewardLine);
         }
 
         giveReward(p, q.reward);
@@ -173,12 +174,49 @@ public final class QuestManager {
         if (result.getType() == q.itemMaterial) addProgress(p.getUniqueId(), q, result.getAmount());
     }
 
-    public void onSellToBuyer(Player p, ItemStack stack) {
+    /**
+     * Сделка с байером (BaerPlugin / BuyerPlugin).
+     *
+     * @param sold   материалы, которых у игрока стало МЕНЬШЕ, — то есть проданные байеру
+     * @param bought материалы, которых стало БОЛЬШЕ, — то есть купленные у байера
+     */
+    public void onBuyerTrade(Player p, Map<Material, Integer> sold, Map<Material, Integer> bought) {
+        if (p == null) return;
         QuestDefinition q = currentQuest(p.getUniqueId());
-        if (q == null || q.type != QuestType.SELL_TO_BUYER || q.itemMaterial == null) return;
-        if (stack != null && q.itemMaterial.equals(stack.getType())) {
-            addProgress(p.getUniqueId(), q, stack.getAmount());
+        if (q == null) return;
+
+        int gained;
+        if (q.type == QuestType.SELL_TO_BUYER) {
+            gained = matchAmount(sold, q);
+            if (q.countBuys) gained += matchAmount(bought, q);
+        } else if (q.type == QuestType.BUY_FROM_BUYER) {
+            gained = matchAmount(bought, q);
+            if (q.countBuys) gained += matchAmount(sold, q);
+        } else {
+            return;
         }
+        if (gained > 0) addProgress(p.getUniqueId(), q, gained);
+    }
+
+    /**
+     * Сколько единиц из сделки подходит под квест.
+     * Если у квеста не указан {@code material} — засчитывается ЛЮБОЙ предмет
+     * (квесты вида «продайте что-нибудь байеру»).
+     */
+    private static int matchAmount(Map<Material, Integer> items, QuestDefinition q) {
+        if (items == null || items.isEmpty()) return 0;
+        if (q.itemMaterial == null) {
+            int sum = 0;
+            for (int v : items.values()) sum += Math.max(0, v);
+            return sum;
+        }
+        return Math.max(0, items.getOrDefault(q.itemMaterial, 0));
+    }
+
+    /** Совместимость со старым API и с прямым мостом из байер-плагина. */
+    public void onSellToBuyer(Player p, ItemStack stack) {
+        if (p == null || stack == null || stack.getType() == Material.AIR) return;
+        onBuyerTrade(p, Map.of(stack.getType(), stack.getAmount()), Map.of());
     }
 
     public void onEntityKilled(EntityDeathEvent e) {

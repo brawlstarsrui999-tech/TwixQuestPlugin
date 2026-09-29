@@ -10,7 +10,6 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
@@ -126,23 +125,12 @@ public final class PlayerListener implements Listener, BuyerHook.TwixQuestSeller
         manager.checkDeposit(e.getPlayer());
     }
 
-    /** Хук-перехватчик команд покупателя. Позволяет интегрироваться с
-     * BaerPlugin без обязательного обратного хука. */
-    @EventHandler
-    public void onCommand(PlayerCommandPreprocessEvent e) {
-        String msg = e.getMessage();
-        // Пример паттерна: /buyer sell, /buyer sell <amount>, /baer sell, /baer sell all
-        String trimmed = msg.trim().toLowerCase();
-        if (trimmed.startsWith("/buyer sell") || trimmed.startsWith("/baer sell") || trimmed.startsWith("/bay sell")) {
-            // Отдаём менеджеру сигнал — мы не знаем точный предмет, но можем
-            // попробовать зарегистрировать продажу по основной руке игрока.
-            Player p = e.getPlayer();
-            ItemStack hand = p.getInventory().getItemInMainHand();
-            if (hand != null && hand.getType() != Material.AIR) {
-                manager.onSellToBuyer(p, hand);
-            }
-        }
-    }
+    // ВАЖНО: команды байера здесь НЕ перехватываем.
+    // В BaerPlugin (имя плагина — BuyerPlugin) нет и не было подкоманды "sell":
+    // продажа это правый клик по товару в GUI /buyer, покупка — левый.
+    // Старый перехватчик "/buyer sell" засчитывал предмет из основной руки,
+    // хотя никакой сделки не происходило. Теперь командами занимается BuyerHook:
+    // он лишь отмечает начало сессии, а сделку считает по изменению инвентаря.
 
     /** Мост из байер-плагина — вызывается из его Bukkit ServicesManager (если он это поддерживает). */
     @Override

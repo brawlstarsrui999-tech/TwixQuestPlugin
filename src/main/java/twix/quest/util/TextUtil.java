@@ -9,29 +9,63 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Утилиты форматирования. Использует только MiniMessage-совместимые теги.
  *
  * Поддерживаются:
- * - HEX-цвета:        &lt;#RRGGBB&gt;Hello&lt;/#RRGGBB&gt;
+ * - HEX-цвета:        &lt;#RRGGBB&gt;
  * - Именованные:      &lt;red&gt;, &lt;dark_purple&gt;, &lt;gold&gt;, и т.п.
  * - Градиенты:        &lt;gradient:#9B59FF:#D3A8FF&gt;Twix&lt;/gradient&gt;
  * - Жирный/наклон:   &lt;bold&gt;, &lt;italic&gt;, &lt;underlined&gt;
  * - Клики:            &lt;click:run_command:/quests&gt;открыть&lt;/click&gt;
  * - Hover:            &lt;hover:show_text:'описание'&gt;наведи&lt;/hover&gt;
  *
- * Не используются: &-коды и &lt;color:#hex&gt; — для совместимости с любыми версиями Adventure.
+ * <p><b>Важно про цвета.</b> Цвета в MiniMessage — «незакрываемые» теги:
+ * корректно писать &lt;#RRGGBB&gt; или &lt;gold&gt; БЕЗ парного &lt;/gold&gt;.
+ * Незакрытый/несуществующий тег MiniMessage не отбрасывает, а выводит
+ * буквально как текст (см. TokenParser: «not recognized, plain text» и
+ * «the closing tag didn't match to anything» → TextNode). Поэтому строки
+ * вида {@code "<##F1C40F>"} (двойной символ решётки) или {@code "</gold>"}
+ * игрок видит прямо в названии/подсказке предмета.</p>
+ *
+ * <p>{@link #mm(String)} на всякий случай чинит обе эти опечатки и никогда
+ * не бросает исключение — иначе одна кривая строка в quests.yml роняла бы
+ * открытие всего меню.</p>
  */
 public final class TextUtil {
 
     private static MiniMessage MM;
+    private static JavaPlugin OWNER;
     /** Резолвер тегов: только стандартные MiniMessage-теги (HEX, named, gradient, decoration, click, hover). */
     private static final TagResolver RESOLVER = TagResolver.standard();
+
+    /** Уже залогированные «починенные» строки, чтобы не спамить в консоль. */
+    private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
+
+    /** "<##F1C40F>" → "<#F1C40F>" (двойная решётка — всегда опечатка). */
+    private static final Pattern DOUBLE_HEX = Pattern.compile("<#(?=#)");
+    /** "</#F1C40F>" — закрывающий HEX-тег, которого в MiniMessage не существует. */
+    private static final Pattern CLOSE_HEX = Pattern.compile("</\\s*#[0-9a-fA-F]{6}\\s*>");
+    /** "</gold>" и прочие закрывающие теги именованных цветов. */
+    private static final Pattern CLOSE_NAMED = Pattern.compile("</\\s*([a-zA-Z_]+)\\s*>");
+
+    /** Именованные цвета NamedTextColor: их закрывать нельзя. */
+    private static final Set<String> NAMED_COLORS = Set.of(
+            "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple",
+            "gold", "gray", "grey", "dark_gray", "dark_grey", "blue", "green", "aqua",
+            "red", "light_purple", "yellow", "white");
 
     private TextUtil() {}
 
     public static void init(JavaPlugin plugin) {
         MM = MiniMessage.miniMessage();
+        OWNER = plugin;
     }
 
     /** Главный фиолетовый цвет плагина. */
@@ -50,7 +84,69 @@ public final class TextUtil {
     /** Парсит строку с MiniMessage-тегами в {@link Component}, убирает дефолтный курсив. */
     public static Component mm(String input) {
         if (input == null || input.isEmpty()) return Component.empty();
-        return MM.deserialize(input, RESOLVER).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+        String safe = sanitize(input);
+        try {
+            return MM.deserialize(safe, RESOLVER)
+                    .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+        } catch (RuntimeException ex) {
+            // МиниМесседж умеет кидаться на совсем битых конструкциях — не роняем меню,
+            // а показываем текст без разметки.
+            warnOnce(input, ex.getMessage());
+            return MM.deserialize(MM.escapeTags(stripTags(safe)))
+                    .decoration(TextDecoration.ITALIC, false);
+        }
+    }
+
+    /**
+     * Чинит типовые опечатки в цветовых тегах, из-за которых MiniMessage
+     * выводит разметку как обычный текст.
+     */
+    public static String sanitize(String input) {
+        if (input == null || input.isEmpty()) return input;
+        String out = input;
+
+        // 1) "<##RRGGBB>" → "<#RRGGBB>"
+        if (out.contains("<##")) {
+            out = DOUBLE_HEX.matcher(out).replaceAll("<#");
+        }
+
+        // 2) "</#RRGGBB>" — закрыть HEX-цвет нельзя, тег уйдёт в чат/лор текстом
+        if (out.contains("</#")) {
+            out = CLOSE_HEX.matcher(out).replaceAll("");
+        }
+
+        // 3) "</gold>", "</red>", ... — то же самое для именованных цветов
+        if (out.contains("</")) {
+            Matcher m = CLOSE_NAMED.matcher(out);
+            StringBuilder sb = new StringBuilder();
+            while (m.find()) {
+                String name = m.group(1).toLowerCase(Locale.ROOT);
+                m.appendReplacement(sb, NAMED_COLORS.contains(name) ? "" : Matcher.quoteReplacement(m.group()));
+            }
+            m.appendTail(sb);
+            out = sb.toString();
+        }
+
+        if (!out.equals(input)) {
+            warnOnce(input, "исправлен некорректный цветовой тег (цвета не закрываются: пишите <#RRGGBB> или <gold> без </...>)");
+        }
+        return out;
+    }
+
+    /** Грубо вырезает все теги &lt;...&gt; — используется только как аварийный фолбэк. */
+    private static String stripTags(String input) {
+        return input.replaceAll("<[^<>]{0,64}>", "");
+    }
+
+    private static void warnOnce(String input, String why) {
+        if (WARNED.size() > 200 || !WARNED.add(input)) return;
+        String message = "TwixQuest: некорректная MiniMessage-строка \"" + trim(input) + "\" — " + why;
+        if (OWNER != null) OWNER.getLogger().warning(message);
+        else Bukkit.getLogger().warning(message);
+    }
+
+    private static String trim(String s) {
+        return s.length() > 80 ? s.substring(0, 80) + "…" : s;
     }
 
     /**
