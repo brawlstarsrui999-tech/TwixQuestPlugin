@@ -61,6 +61,12 @@ public final class BuyerHook implements Listener {
 
     /** Сколько живёт сессия без активности (мс). */
     private static final long SESSION_TTL_MS = 10L * 60L * 1000L;
+    /**
+     * Сессия, начатая командой, должна подтвердиться открытием GUI байера за это время (мс).
+     * Иначе (команда чужого плагина, нет прав) любое изменение инвентаря в ближайшие
+     * минуты могло бы ошибочно засчитаться продажей.
+     */
+    private static final long GUI_CONFIRM_MS = 5_000L;
     /** Период дополнительной сверки активных сессий (тики). */
     private static final long SETTLE_PERIOD_TICKS = 20L;
 
@@ -117,6 +123,8 @@ public final class BuyerHook implements Listener {
         boolean buyerGui = isBuyerTitle(e.getView().title());
         if (buyerGui) {
             startSession(p, "заголовок GUI");
+            Session confirmed = sessions.get(p.getUniqueId());
+            if (confirmed != null) confirmed.guiConfirmed = true;
         } else {
             // Игрок ушёл в обычный сундук/верстак — сессия байера закончилась,
             // иначе следующая сверка могла бы засчитать посторонние изменения.
@@ -153,6 +161,7 @@ public final class BuyerHook implements Listener {
             s = new Session();
             sessions.put(p.getUniqueId(), s);
             s.reason = reason;
+            s.startedAt = System.currentTimeMillis();
         }
         s.items = snapshotItems(p.getInventory());
         s.balance = currentBalance(p);
@@ -178,7 +187,8 @@ public final class BuyerHook implements Listener {
         Session s = sessions.get(p.getUniqueId());
         if (s == null) return;
         long now = System.currentTimeMillis();
-        if (now - s.lastActivity > SESSION_TTL_MS) {
+        if (now - s.lastActivity > SESSION_TTL_MS
+                || (!s.guiConfirmed && now - s.startedAt > GUI_CONFIRM_MS)) {
             sessions.remove(p.getUniqueId());
             return;
         }
@@ -328,7 +338,10 @@ public final class BuyerHook implements Listener {
     private static final class Session {
         String reason = "";
         double balance;
+        long startedAt;
         long lastActivity;
+        /** Открылось ли настоящее GUI байера (а не только прозвучала команда). */
+        boolean guiConfirmed;
         Map<Material, Integer> items = new HashMap<>();
     }
 }

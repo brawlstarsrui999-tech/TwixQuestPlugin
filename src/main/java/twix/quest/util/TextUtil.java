@@ -171,7 +171,18 @@ public final class TextUtil {
      */
     public static String itemName(Material material) {
         if (material == null) return "?";
-        return "<lang:" + material.translationKey() + ">";
+        try {
+            return "<lang:" + material.translationKey() + ">";
+        } catch (RuntimeException ex) {
+            // у материала нет ключа перевода — покажем читаемое имя вместо падения меню
+            return humanize(material.name());
+        }
+    }
+
+    /** DIAMOND_PICKAXE → «Diamond pickaxe» (запасной вариант, когда нет перевода). */
+    static String humanize(String enumName) {
+        String s = enumName.toLowerCase(Locale.ROOT).replace('_', ' ');
+        return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     /** Название существа на языке клиента. */

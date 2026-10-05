@@ -105,23 +105,32 @@ public final class TwixQuestPlugin extends JavaPlugin {
         getLogger().info("TwixQuestPlugin выключен.");
     }
 
+    /** Предупреждения об отсутствии Vault/PlayerPoints пишем один раз, а не при каждой проверке. */
+    private boolean vaultWarned;
+    private boolean pointsWarned;
+
     public void setupVault() {
         if (vaultEconomy != null) return;
         if (getServer().getPluginManager().getPlugin("Vault") == null) {
-            getLogger().warning("Vault не найден — экономические награды будут недоступны.");
+            if (!vaultWarned) getLogger().warning("Vault не найден — экономические награды будут недоступны.");
+            vaultWarned = true;
             return;
         }
         RegisteredServiceProvider<Economy> rsp = Bukkit.getServicesManager().getRegistration(Economy.class);
         if (rsp == null) {
-            getLogger().warning("Провайдер экономики не найден — квестовые монеты будут недоступны.");
+            if (!vaultWarned) getLogger().warning("Провайдер экономики пока не найден — повторим поиск, когда он понадобится.");
+            vaultWarned = true;
             return;
         }
         vaultEconomy = rsp.getProvider();
+        getLogger().info("Подключено к экономике Vault: " + vaultEconomy.getName());
     }
 
     private void setupPlayerPoints() {
+        if (playerPointsAPI != null) return;
         if (getServer().getPluginManager().getPlugin("PlayerPoints") == null) {
-            getLogger().warning("PlayerPoints не найден — награды Twixcoin будут недоступны.");
+            if (!pointsWarned) getLogger().warning("PlayerPoints не найден — награды Twixcoin будут недоступны.");
+            pointsWarned = true;
             return;
         }
         try {
@@ -135,15 +144,16 @@ public final class TwixQuestPlugin extends JavaPlugin {
                 playerPointsAPI = pp.getAPI();
                 if (playerPointsAPI != null) {
                     getLogger().info("Подключено к PlayerPoints (Twixcoin).");
-                } else {
+                } else if (!pointsWarned) {
                     getLogger().warning("PlayerPoints.getAPI() вернул null — награды Twixcoin будут недоступны.");
                 }
-            } else {
+            } else if (!pointsWarned) {
                 getLogger().warning("Не удалось получить экземпляр PlayerPoints.");
             }
         } catch (Throwable t) {
-            getLogger().warning("Не удалось подключиться к PlayerPoints: " + t.getMessage());
+            if (!pointsWarned) getLogger().warning("Не удалось подключиться к PlayerPoints: " + t.getMessage());
         }
+        pointsWarned = true;
     }
 
     public void reloadAll() {
@@ -158,8 +168,20 @@ public final class TwixQuestPlugin extends JavaPlugin {
     public PlayerQuestData getPlayerData() { return playerData; }
     public QuestManager getQuestManager() { return questManager; }
     public MenuManager getMenuManager() { return menuManager; }
-    public Economy getVaultEconomy() { return vaultEconomy; }
-    public PlayerPointsAPI getPlayerPointsAPI() { return playerPointsAPI; }
+    /**
+     * Экономика Vault. Если на момент запуска плагина провайдер ещё не был
+     * зарегистрирован (он мог загрузиться позже), ищем его снова — иначе награды
+     * монетами и квест на баланс навсегда остались бы нерабочими.
+     */
+    public Economy getVaultEconomy() {
+        if (vaultEconomy == null) setupVault();
+        return vaultEconomy;
+    }
+
+    public PlayerPointsAPI getPlayerPointsAPI() {
+        if (playerPointsAPI == null) setupPlayerPoints();
+        return playerPointsAPI;
+    }
 
     /** Хук на плагин байера для квестов с продажей ему. */
     public BuyerHook getBuyerHook() { return buyerHook; }
