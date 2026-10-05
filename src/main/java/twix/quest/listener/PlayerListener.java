@@ -9,19 +9,17 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.vehicle.VehicleEnterEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.entity.Strider;
 import org.bukkit.inventory.ItemStack;
 import twix.quest.TwixQuestPlugin;
 import twix.quest.data.PlayerQuestData;
 import twix.quest.hook.BuyerHook;
 import twix.quest.manager.QuestManager;
+import twix.quest.quest.QuestDefinition;
 import twix.quest.util.TextUtil;
 
 import java.util.UUID;
@@ -53,19 +51,11 @@ public final class PlayerListener implements Listener, BuyerHook.TwixQuestSeller
         data.startTime(id);
         data.setLastKnownName(e.getPlayer());
 
-        // Поставить таймер проверок баланса и инвентаря каждую минуту
-        new BukkitRunnable() {
-            @Override public void run() {
-                Player p = Bukkit.getPlayer(id);
-                if (p == null || !p.isOnline()) { cancel(); return; }
-                manager.checkBalance(p);
-                manager.checkDeposit(p);
-            }
-        }.runTaskTimer(plugin, 20L * 30, 20L * 30);
-
-        // Если уже есть текущий квест — проинформируем
-        plugin.getQuestManager().currentQuest(id);
         TextUtil.send(e.getPlayer(), "<#9B59FF><b>Откройте <click:run_command:/quests>/quests</click></b> для просмотра своих заданий.");
+        QuestDefinition current = manager.currentQuest(id);
+        if (current != null) {
+            TextUtil.send(e.getPlayer(), "<gray>Текущий квест: <#D3A8FF>#" + current.id + " " + current.name);
+        }
     }
 
     @EventHandler public void onQuit(PlayerQuitEvent e) { manager.onQuit(e); }
@@ -94,18 +84,14 @@ public final class PlayerListener implements Listener, BuyerHook.TwixQuestSeller
         manager.onWorldChange(e);
     }
 
+    /**
+     * Оседлать лавомерку. Слушаем EntityMountEvent (любой «посадочный» случай), а не
+     * VehicleEnterEvent: так один раз посадка не засчитается дважды.
+     */
     @EventHandler
-    public void onMove(PlayerMoveEvent e) {
-        if (e.getFrom().getBlockX() == e.getTo().getBlockX()
-                && e.getFrom().getBlockY() == e.getTo().getBlockY()
-                && e.getFrom().getBlockZ() == e.getTo().getBlockZ()) return;
-        manager.onMove(e);
-    }
-
-    @EventHandler
-    public void onStriderMount(VehicleEnterEvent e) {
-        if (!(e.getEntered() instanceof Player p)) return;
-        if (e.getVehicle() instanceof Strider) {
+    public void onMount(EntityMountEvent e) {
+        if (e.isCancelled()) return;
+        if (e.getEntity() instanceof Player p && e.getMount() instanceof Strider) {
             manager.onStriderMount(p);
         }
     }
@@ -114,15 +100,6 @@ public final class PlayerListener implements Listener, BuyerHook.TwixQuestSeller
     public void onInventoryClick(InventoryClickEvent e) {
         if (e.isCancelled()) return;
         manager.onTradeClick(e);
-        if (e.getWhoClicked() instanceof Player p) {
-            Bukkit.getScheduler().runTask(plugin, () -> manager.checkDeposit(p));
-        }
-    }
-
-    @EventHandler
-    public void onPickup(PlayerPickupItemEvent e) {
-        if (e.isCancelled()) return;
-        manager.checkDeposit(e.getPlayer());
     }
 
     // ВАЖНО: команды байера здесь НЕ перехватываем.

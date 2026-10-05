@@ -64,8 +64,48 @@ public final class PlayerQuestData {
         YamlConfiguration cfg = loadFile(uuid);
         cfg.set("completed", null);
         cfg.set("started", null);
+        cfg.set("progress", null);
         caches.put(uuid, cfg);
         save(uuid);
+    }
+
+    // ------------------------------------------------------------------
+    // Прогресс текущих квестов
+    // ------------------------------------------------------------------
+    // Раньше прогресс жил только в памяти и пропадал при выходе игрока или
+    // перезапуске сервера: «убито 20 из 25 вихрей» сбрасывалось в ноль, а для
+    // вложения предметов это означало бы потерю уже отданных вещей.
+    // Теперь счётчики лежат в файле игрока: progress.<id квеста>.<ключ>.
+    // Ключ — "n" для обычных счётчиков и имя материала для вложений.
+
+    /** Игроки с несохранённым прогрессом (сбрасываются периодической задачей). */
+    private final Set<UUID> dirty = new HashSet<>();
+
+    private static String progressPath(int questId, String key) {
+        return "progress." + questId + "." + key;
+    }
+
+    public int getCounter(UUID uuid, int questId, String key) {
+        return loadFile(uuid).getInt(progressPath(questId, key), 0);
+    }
+
+    /** Меняет счётчик в памяти; на диск попадёт при {@link #flushDirty()} или {@link #save(UUID)}. */
+    public void setCounter(UUID uuid, int questId, String key, int value) {
+        loadFile(uuid).set(progressPath(questId, key), value);
+        dirty.add(uuid);
+    }
+
+    public void clearProgress(UUID uuid, int questId) {
+        loadFile(uuid).set("progress." + questId, null);
+        dirty.add(uuid);
+    }
+
+    /** Сохраняет всех, у кого есть несохранённые изменения прогресса. */
+    public void flushDirty() {
+        if (dirty.isEmpty()) return;
+        List<UUID> todo = new ArrayList<>(dirty);
+        dirty.clear();
+        for (UUID id : todo) save(id);
     }
 
     public long startTime(UUID uuid) {
@@ -80,6 +120,7 @@ public final class PlayerQuestData {
     }
 
     public void save(UUID uuid) {
+        dirty.remove(uuid);
         YamlConfiguration cfg = caches.get(uuid);
         if (cfg == null) return;
         try {

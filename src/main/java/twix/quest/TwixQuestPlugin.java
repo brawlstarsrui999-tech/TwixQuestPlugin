@@ -67,6 +67,28 @@ public final class TwixQuestPlugin extends JavaPlugin {
 
         setupVault();
         setupPlayerPoints();
+        startTasks();
+    }
+
+    /**
+     * Две общие задачи вместо слушателя движения и персональных таймеров:
+     * <ul>
+     *   <li>раз в 2 секунды — проверка состояний без собственного события
+     *       (баланс, «уже стою в нужном мире», «стою внутри бастиона»);</li>
+     *   <li>раз в 10 секунд — сохранение прогресса на диск.</li>
+     * </ul>
+     */
+    private void startTasks() {
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                try {
+                    questManager.poll(p);
+                } catch (RuntimeException ex) {
+                    getLogger().warning("Ошибка проверки квеста у " + p.getName() + ": " + ex);
+                }
+            }
+        }, 40L, 40L);
+        Bukkit.getScheduler().runTaskTimer(this, () -> playerData.flushDirty(), 200L, 200L);
     }
 
     @Override
@@ -78,6 +100,7 @@ public final class TwixQuestPlugin extends JavaPlugin {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 playerData.save(p.getUniqueId());
             }
+            playerData.flushDirty();
         }
         getLogger().info("TwixQuestPlugin выключен.");
     }

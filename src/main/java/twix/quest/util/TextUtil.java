@@ -6,7 +6,9 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Locale;
@@ -157,6 +159,72 @@ public final class TextUtil {
     public static String escapeMiniMessage(String input) {
         if (input == null) return "";
         return MM.escapeTags(input);
+    }
+
+    // ------------------------------------------------------------------
+    // Названия и форматирование для меню
+    // ------------------------------------------------------------------
+
+    /**
+     * Название предмета на языке КЛИЕНТА: русский клиент увидит «Дубовое бревно»,
+     * английский — «Oak Log». Не нужен словарь переводов.
+     */
+    public static String itemName(Material material) {
+        if (material == null) return "?";
+        return "<lang:" + material.translationKey() + ">";
+    }
+
+    /** Название существа на языке клиента. */
+    public static String entityName(EntityType type) {
+        if (type == null) return "?";
+        try {
+            return "<lang:" + type.translationKey() + ">";
+        } catch (RuntimeException ex) {
+            return type.name().toLowerCase(Locale.ROOT).replace('_', ' ');
+        }
+    }
+
+    /** «Острота II» на языке клиента; уровень не пишем для чаров с единственным уровнем. */
+    public static String enchantName(String key, int level, int maxLevel) {
+        String name = "<lang:enchantment.minecraft." + key + ">";
+        if (level == 1 && maxLevel == 1) return name;
+        return name + " " + roman(level);
+    }
+
+    /** Римские цифры для уровней чаров (1–10), дальше — обычные числа. */
+    public static String roman(int n) {
+        String[] r = {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
+        return n >= 1 && n <= 10 ? r[n] : String.valueOf(n);
+    }
+
+    /** Склонение по числу: 1 монета, 2 монеты, 5 монет. */
+    public static String plural(long n, String one, String few, String many) {
+        long a = Math.abs(n) % 100;
+        long b = a % 10;
+        if (a >= 11 && a <= 14) return many;
+        if (b == 1) return one;
+        if (b >= 2 && b <= 4) return few;
+        return many;
+    }
+
+    /** Число с пробелами между тысячами: 1500 → «1 500». */
+    public static String num(long n) {
+        return String.format(Locale.US, "%,d", n).replace(',', ' ');
+    }
+
+    /** Прогресс-бар строкой MiniMessage: ▰▰▰▱▱▱▱▱▱▱ (цвет не закрываем — MiniMessage этого не требует). */
+    public static String bar(long done, long total, int segments) {
+        if (total <= 0) return "<dark_gray>" + "▱".repeat(Math.max(1, segments));
+        long clamped = Math.max(0, Math.min(done, total));
+        int filled = (int) Math.round(clamped * (double) segments / total);
+        if (clamped > 0 && filled == 0) filled = 1;          // хоть что-то видно, если прогресс есть
+        if (clamped < total && filled == segments) filled = segments - 1; // «полно» только когда реально полно
+        StringBuilder sb = new StringBuilder("<#9B59FF>");
+        for (int i = 0; i < segments; i++) {
+            if (i == filled) sb.append("<dark_gray>");
+            sb.append(i < filled ? "▰" : "▱");
+        }
+        return sb.toString();
     }
 
     /**

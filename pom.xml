@@ -72,9 +72,21 @@
     <build>
         <finalName>TwixQuestPlugin-${project.version}</finalName>
         <resources>
+            <!-- Подстановка ${project.version} нужна только в plugin.yml. Остальное (quests.yml)
+                 копируем как есть, чтобы Maven случайно не «раскрыл» ${...} или @...@ в тексте. -->
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
             </resource>
         </resources>
         <plugins>
