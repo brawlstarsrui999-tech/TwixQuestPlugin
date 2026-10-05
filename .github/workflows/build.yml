@@ -37,9 +37,9 @@ jobs:
               return s.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
           level = 'error' if any('BUILD FAILURE' in l for l in lines) else 'notice'
           chunk, n = [], 0
-          for l in keep[:400]:
+          for l in keep[:700]:
               chunk.append(l[:600])
-              if len(chunk) >= 25 and n < 9:
+              if len(chunk) >= 60 and n < 9:
                   n += 1
                   print('::%s title=mvn log %d::%s' % (level, n, enc('\n'.join(chunk))))
                   chunk = []
