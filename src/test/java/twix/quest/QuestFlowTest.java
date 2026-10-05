@@ -122,6 +122,14 @@ class QuestFlowTest {
     }
 
     @Test
+    void pluginYmlIsPackagedAndVersionIsFiltered() {
+        // Maven подставляет версию только в plugin.yml; quests.yml копируется как есть.
+        assertEquals("1.0.0", plugin.getPluginMeta().getVersion());
+        assertNotNull(plugin.getCommand("quests"), "команда /quests должна быть описана в plugin.yml");
+        assertNotNull(plugin.getCommand("tqadmin"));
+    }
+
+    @Test
     void rewardItemsCarryRealEnchantments() {
         ItemStack axe = quest(1).reward.items.get(0).buildStacks().get(0);
         assertEquals(Material.WOODEN_AXE, axe.getType());

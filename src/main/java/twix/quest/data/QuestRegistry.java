@@ -5,12 +5,10 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.plugin.java.JavaPlugin;
 import twix.quest.quest.QuestDefinition;
 import twix.quest.quest.QuestType;
 import twix.quest.reward.Reward;
-import twix.quest.reward.RewardItem;
 
 import java.io.File;
 import java.io.IOException;
