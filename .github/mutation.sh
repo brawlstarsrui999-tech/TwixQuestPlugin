@@ -22,5 +22,8 @@ run_mut "M3 все слоты ведут на квест #1"    $B/menu/MenuMana
 run_mut "M4 вложение забирает всё подряд"   $B/manager/QuestManager.java       's/int need = r.amount - have;/int need = 1000000;/'                                       QuestFlowTest
 run_mut "M5 забирает и именные предметы"    $B/manager/QuestManager.java       's/if (plainOnly \&\& !s.isSimilar(proto)) continue;/\/\/ mutated/'                          QuestFlowTest
 run_mut "M6 экономика ищется один раз"      $B/TwixQuestPlugin.java            's/if (vaultEconomy == null) setupVault();/\/\/ mutated/'                                  QuestIntegrationTest
-run_mut "M7 у всех квестов иконка-дуб"      $B/quest/QuestDefinition.java      's/if (iconOverride != null) return iconOverride;/return Material.OAK_LOG;/'               QuestFlowTest
+run_mut "M7 у всех квестов иконка-дуб"      $B/quest/QuestDefinition.java      's/if (iconOverride != null) return iconOverride;/if (true) return Material.OAK_LOG;/'    QuestFlowTest
+run_mut "M8 прогресс не сохраняется сразу"  $B/manager/QuestManager.java       's/^        data.save(id);/        \/\/ mutated/'                                          QuestIntegrationTest
+run_mut "M9 сброс не чистит прогресс"       $B/data/PlayerQuestData.java       's/cfg.set("progress", null);/\/\/ mutated/'                                              QuestIntegrationTest
+run_mut "M10 баланс не проверяется"         $B/manager/QuestManager.java       's/case REACH_BALANCE -> checkBalance(p, q);/case REACH_BALANCE -> { }/'                  QuestIntegrationTest
 echo "MUT --- готово"

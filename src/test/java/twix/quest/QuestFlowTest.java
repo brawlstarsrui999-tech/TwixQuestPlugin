@@ -238,6 +238,10 @@ class QuestFlowTest {
         player.getInventory().addItem(special);
         player.getInventory().addItem(new ItemStack(Material.OAK_LOG, 4));
 
+        // цифры «в сумке» в меню считаются по тому же правилу, что и изъятие
+        assertEquals(4, qm().countInInventory(player, Material.OAK_LOG, true));
+        assertEquals(14, qm().countInInventory(player, Material.OAK_LOG, false));
+
         plugin.getMenuManager().openTree(player);
         click(ClickType.LEFT, slotOf(1));
 
