@@ -691,29 +691,34 @@ public final class MenuManager {
         for (RewardItem item : q.reward.items) out.add(item.preview());
         if (q.reward.vaultCoins > 0) {
             out.add(currencyIcon(Material.GOLD_INGOT, "<#F1C40F><bold>" + q.reward.coinsText(),
-                    "<gray>Зачислятся на ваш счёт."));
+                    "<gray>Будут зачислены на ваш счёт.", true));
         }
         if (q.reward.twixCoins > 0) {
             out.add(currencyIcon(Material.AMETHYST_SHARD, "<#7FDBFF><bold>" + q.reward.twixText(),
-                    "<gray>Донатная валюта сервера."));
+                    "<gray>Донатная валюта сервера.", true));
         }
         if (q.reward.expLevels > 0) {
             out.add(currencyIcon(Material.EXPERIENCE_BOTTLE, "<#7CFC00><bold>" + q.reward.expText(),
-                    "<gray>Начислятся сразу."));
+                    "<gray>Будут начислены сразу.", true));
         }
         if (out.isEmpty()) {
             out.add(currencyIcon(Material.BARRIER, "<dark_gray><bold>Без награды",
-                    "<gray>Этот квест — просто шаг вперёд."));
+                    "<gray>Этот квест — просто шаг вперёд.", false));
         }
         return out;
     }
 
-    private ItemStack currencyIcon(Material mat, String name, String line) {
+    private ItemStack currencyIcon(Material mat, String name, String line, boolean isReward) {
         ItemStack stack = new ItemStack(mat);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.displayName(TextUtil.mm(name));
-            meta.lore(components(List.of(SEP, line, SEP, "<#F1C40F>▸ Награда за квест")));
+            List<String> lore = new ArrayList<>(List.of(SEP, line));
+            if (isReward) {
+                lore.add(SEP);
+                lore.add("<#F1C40F>▸ Награда за квест");
+            }
+            meta.lore(components(lore));
             meta.addItemFlags(ItemFlag.values());
             stack.setItemMeta(meta);
         }

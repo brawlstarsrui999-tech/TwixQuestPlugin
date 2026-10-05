@@ -129,7 +129,7 @@ public final class RewardItem {
         if (meta != null) {
             List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
             lore.add(TextUtil.mm("<dark_gray>─────────"));
-            lore.add(TextUtil.mm("<#F1C40F>▸ Награда за квест"));
+            lore.add(TextUtil.mm("<#F1C40F>▸ Вы получите этот предмет"));
             meta.lore(lore);
             stack.setItemMeta(meta);
         }
