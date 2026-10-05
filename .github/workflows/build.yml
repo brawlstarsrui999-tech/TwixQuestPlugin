@@ -53,3 +53,23 @@ jobs:
           name: TwixQuestPlugin
           path: target/TwixQuestPlugin-*.jar
           if-no-files-found: error
+
+  mutation:
+    # ВРЕМЕННО: запускается только если в сообщении коммита есть [mutation]
+    if: contains(github.event.head_commit.message, '[mutation]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Mutation check
+        run: |
+          bash .github/mutation.sh 2>&1 | tee mut.out
+          python3 - <<'PY'
+          lines = [l.rstrip() for l in open('mut.out', encoding='utf-8', errors='replace') if l.startswith('MUT')]
+          def enc(s): return s.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print('::notice title=mvn log mutation::' + enc('\n'.join(lines)))
+          PY
