@@ -193,6 +193,30 @@ class QuestFlowTest {
     }
 
     @Test
+    void rightClickOpensInfoInsteadOfDepositing() {
+        player.getInventory().addItem(new ItemStack(Material.OAK_LOG, 10));
+        plugin.getMenuManager().openTree(player);
+
+        click(ClickType.RIGHT, slotOf(1));
+        tick();
+
+        assertEquals(10, count(Material.OAK_LOG), "ПКМ — это «информация», вкладывать он не должен");
+        assertTrue(plain(player.getOpenInventory().title()).contains("Информация о квесте"));
+    }
+
+    @Test
+    void accidentalClickTypesNeverDeposit() {
+        player.getInventory().addItem(new ItemStack(Material.OAK_LOG, 10));
+        plugin.getMenuManager().openTree(player);
+
+        click(ClickType.DROP, slotOf(1));
+        click(ClickType.NUMBER_KEY, slotOf(1));
+        click(ClickType.DOUBLE_CLICK, slotOf(1));
+
+        assertEquals(10, count(Material.OAK_LOG), "клавиша выброса, цифры и двойной клик не должны вкладывать");
+    }
+
+    @Test
     void clickingWithoutItemsChangesNothing() {
         plugin.getMenuManager().openTree(player);
         click(ClickType.LEFT, slotOf(1));

@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -826,7 +827,7 @@ public final class MenuManager {
                 }
             }
             case TREE -> handleTreeClick(p, st, e, slot);
-            case QUEST_INFO -> handleInfoClick(p, st, slot);
+            case QUEST_INFO -> handleInfoClick(p, st, slot, e.getClick());
             case CLANS, TOP, PROFILE -> {
                 if (slot == 22) defer(p, () -> openMain(p));
             }
@@ -858,12 +859,17 @@ public final class MenuManager {
         QuestDefinition active = tp.getQuestManager().currentQuest(id);
         boolean isActive = active != null && active.id == q.id;
 
+        ClickType click = e.getClick();
+        // Двойной клик приходит вторым событием после обычного — иначе вложение сработало бы дважды.
+        // Остальное (клавиша выброса, цифры, колесо) не считаем осознанным действием.
+        if (click == ClickType.DOUBLE_CLICK || !(click.isLeftClick() || click.isRightClick())) return;
+
         if (!completed && !isActive) {
             // Заблокированный квест — тактильный отклик
             p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_IRON_DOOR_CLOSE, 0.5f, 1.6f);
             return;
         }
-        if (isActive && q.isClaimable() && !e.getClick().isRightClick()) {
+        if (isActive && q.isClaimable() && click.isLeftClick()) {
             doDeposit(p, st, q); // ЛКМ — вложить предметы
             return;
         }
@@ -871,7 +877,7 @@ public final class MenuManager {
         defer(p, () -> openInfo(p, q)); // ПКМ (и ЛКМ у квестов-действий) — информация
     }
 
-    private void handleInfoClick(Player p, MenuState st, int slot) {
+    private void handleInfoClick(Player p, MenuState st, int slot, ClickType click) {
         TwixQuestPlugin tp = TwixQuestPlugin.inst();
         QuestDefinition q = tp.getQuestRegistry().byId(st.questId);
         if (slot == INFO_BACK) {
@@ -879,7 +885,7 @@ public final class MenuManager {
             defer(p, () -> openTree(p, page));
             return;
         }
-        if (q != null && st.slotQuest.containsKey(slot)) {
+        if (q != null && st.slotQuest.containsKey(slot) && click != ClickType.DOUBLE_CLICK && click.isLeftClick()) {
             doDeposit(p, st, q);
         }
     }
