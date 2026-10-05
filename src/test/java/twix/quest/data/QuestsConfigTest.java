@@ -124,6 +124,8 @@ class QuestsConfigTest {
     static void load() {
         // Реестры Bukkit (Material, Enchantment...) без сервера не инициализируются.
         MockBukkit.mock();
+        System.out.println("DIAG mockbukkit=" + MockBukkit.class.getProtectionDomain().getCodeSource().getLocation());
+        System.out.println("DIAG paper-api=" + org.bukkit.Bukkit.class.getProtectionDomain().getCodeSource().getLocation());
         yml = YamlConfiguration.loadConfiguration(new InputStreamReader(
                 QuestsConfigTest.class.getResourceAsStream("/quests.yml"), StandardCharsets.UTF_8));
         TextUtil.init(null);

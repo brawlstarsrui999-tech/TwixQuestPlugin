@@ -18,7 +18,8 @@ import twix.quest.manager.QuestManager;
 import twix.quest.menu.MenuManager;
 import twix.quest.util.TextUtil;
 
-public final class TwixQuestPlugin extends JavaPlugin {
+// Не final: тестовый фреймворк MockBukkit создаёт подкласс главного класса плагина.
+public class TwixQuestPlugin extends JavaPlugin {
 
     private static TwixQuestPlugin instance;
 
