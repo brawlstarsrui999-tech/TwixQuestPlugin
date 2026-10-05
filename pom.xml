@@ -67,6 +67,13 @@
             <version>5.11.4</version>
             <scope>test</scope>
         </dependency>
+        <!-- MockBukkit: эмуляция сервера, игроков и инвентарей для тестов меню и квестов -->
+        <dependency>
+            <groupId>org.mockbukkit.mockbukkit</groupId>
+            <artifactId>mockbukkit-v1.21</artifactId>
+            <version>[4.0.0,5.0.0)</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

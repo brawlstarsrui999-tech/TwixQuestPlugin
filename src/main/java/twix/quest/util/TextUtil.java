@@ -109,7 +109,8 @@ public final class TextUtil {
 
         // 1) "<##RRGGBB>" → "<#RRGGBB>"
         if (out.contains("<##")) {
-            out = DOUBLE_HEX.matcher(out).replaceAll("<#");
+            // совпадает "<#" перед второй "#", поэтому замена на "<" убирает лишнюю решётку
+            out = DOUBLE_HEX.matcher(out).replaceAll("<");
         }
 
         // 2) "</#RRGGBB>" — закрыть HEX-цвет нельзя, тег уйдёт в чат/лор текстом

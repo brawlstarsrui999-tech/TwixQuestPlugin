@@ -31,7 +31,8 @@ jobs:
           lines = open('build.log', encoding='utf-8', errors='replace').read().splitlines()
           keep = [l for l in lines
                   if l.startswith('[ERROR]') or 'BUILD ' in l
-                  or 'Tests run:' in l or l.startswith('[WARNING] /') or l.startswith('DIAG')]
+                  or 'Tests run:' in l or l.startswith('[WARNING] /') or l.startswith('DIAG')
+                  or l.strip().startswith('at twix.') or 'Caused by' in l or 'mockbukkit' in l.lower()]
           def enc(s):
               return s.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
           level = 'error' if any('BUILD FAILURE' in l for l in lines) else 'notice'

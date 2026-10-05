@@ -5,8 +5,10 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.MockBukkit;
 import twix.quest.quest.QuestType;
 import twix.quest.reward.Reward;
 import twix.quest.reward.RewardItem;
@@ -120,9 +122,16 @@ class QuestsConfigTest {
 
     @BeforeAll
     static void load() {
+        // Реестры Bukkit (Material, Enchantment...) без сервера не инициализируются.
+        MockBukkit.mock();
         yml = YamlConfiguration.loadConfiguration(new InputStreamReader(
                 QuestsConfigTest.class.getResourceAsStream("/quests.yml"), StandardCharsets.UTF_8));
         TextUtil.init(null);
+    }
+
+    @AfterAll
+    static void unload() {
+        MockBukkit.unmock();
     }
 
     private static ConfigurationSection quest(int id) {
