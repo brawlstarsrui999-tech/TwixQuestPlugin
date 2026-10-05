@@ -145,7 +145,7 @@ public final class TextUtil {
         if (WARNED.size() > 200 || !WARNED.add(input)) return;
         String message = "TwixQuest: некорректная MiniMessage-строка \"" + trim(input) + "\" — " + why;
         if (OWNER != null) OWNER.getLogger().warning(message);
-        else Bukkit.getLogger().warning(message);
+        else java.util.logging.Logger.getLogger("TwixQuest").warning(message);
     }
 
     private static String trim(String s) {
